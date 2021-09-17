@@ -1,0 +1,12 @@
+src/__pycache__
+src/old
+.snakemake
+.vscode
+geno/*
+tools/*
+Eye
+IL
+LHb
+NAcc
+OFC
+PL

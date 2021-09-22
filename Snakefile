@@ -4,9 +4,12 @@ def ids(tissue):
         return f.read().splitlines()
 
 
+read_length = {"IL": 100, "LHb": 100, "NAcc": 100} # etc
+
+
 # These steps are short and will not be submitted as cluster jobs:
+# TODO some of these don't exist, remove those
 localrules:
-    individual_vcf,
     observed_snp_list,
     vcf_chr_list,
     index_vcf,
@@ -18,6 +21,9 @@ localrules:
     combine_covariates,
     empty_covariates,
     covariates,
+
+include: "align.smk"
+include: "expression.smk"
 
 
 rule all:
@@ -33,11 +39,6 @@ rule all:
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
 
 
-# TODO: add STAR step
-
-# TODO: add RSEM step
-
-
 rule sim_to_founders:
     """Calculate genetic similarity of each rat to each founder strain to use as covariates.
     Since all tissues share a VCF, this is calculated only once.
@@ -49,36 +50,6 @@ rule sim_to_founders:
         "geno/sim_to_founders.txt"
     shell:
         "Rscript src/sim_to_founders.R {input.pop_vcf} {input.founder_vcf} {output}"
-
-
-rule assemble_expression:
-    """Combine RSEM output from all samples into log-count and TPM expression tables.
-    Also computes inverse-quantile normalized values to use for eQTL mapping. The filtered
-    version is to avoid a tensorQTL error on phenotypes with 1 nonzero value.
-    """
-    input:
-        rsem = lambda w: expand("{{tissue}}/rsem_out/{rat_id}.genes.results.gz", rat_id=ids(w.tissue)),
-        anno = "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf"
-    output:
-        multiext("{tissue}/{tissue}.expr.log2.bed", ".gz", ".gz.tbi"),
-        multiext("{tissue}/{tissue}.expr.tpm.bed", ".gz", ".gz.tbi"),
-        multiext("{tissue}/{tissue}.expr.iqn.bed", ".gz", ".gz.tbi"),
-        multiext("{tissue}/{tissue}.expr.iqn.filtered.bed", ".gz", ".gz.tbi")
-    params:
-        rsem_dir = "{tissue}/rsem_out",
-        prefix = "{tissue}/{tissue}.expr"
-    shell:
-        """
-        python3 src/assemble_expression.py {params.rsem_dir} {input.anno} {params.prefix}
-        bgzip {params.prefix}.log2.bed
-        bgzip {params.prefix}.tpm.bed
-        bgzip {params.prefix}.iqn.bed
-        bgzip {params.prefix}.iqn.filtered.bed
-        tabix {params.prefix}.log2.bed.gz
-        tabix {params.prefix}.tpm.bed.gz
-        tabix {params.prefix}.iqn.bed.gz
-        tabix {params.prefix}.iqn.filtered.bed.gz
-        """
 
 
 rule covariates:

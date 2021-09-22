@@ -18,7 +18,9 @@ The main steps of the pipeline are:
 
 ### Conda environment
 
-Install these conda packages (I'm probably missing some):
+Install conda and [add the bioconda channel](https://bioconda.github.io/user/install.html#set-up-channels).
+
+Install these conda packages using e.g. `conda install snakemake` (I'm probably missing some):
 
 - snakemake
 - star
@@ -72,6 +74,8 @@ default-resources: [walltime=1, mem_mb=4000, cpus=1, partition=""]
 You will then find resources specified for some of the snakemake rules, which are plugged into this command and automatically submitted as cluster jobs.
 
 ## Input files
+
+I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`
 
 ### `geno/ratgtex.vcf.gz`
 

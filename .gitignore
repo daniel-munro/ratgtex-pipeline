@@ -3,6 +3,7 @@ src/old
 .snakemake
 .vscode
 geno/*
+ref/*
 tools/*
 Eye
 IL

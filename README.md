@@ -107,13 +107,15 @@ Note that this pipeline currently does not include QC steps like filtering bad s
 
 ## Running
 
+Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found.
+
 If everything is set up correctly, you can do a dry run:
 
 `snakemake --profile slurm -j8 Eye/Eye.aFC.txt -n`
 
 and if the steps seem to be what you expect, run it without the `-n` tag.
 
-You may want to run the heavy raw data processing steps first, then move on once those are done. E.g. add the list of BAM files to the first rule in `Snakefile` and generate them:
+You may want to run a subset of the heavy raw data processing steps first, then move on once those are done. E.g. add the first 10 BAM files to the first rule in `Snakefile` and generate them:
 
 `snakemake --profile slurm -j8`
 

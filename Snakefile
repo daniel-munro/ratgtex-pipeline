@@ -1,27 +1,24 @@
+import yaml
+from pathlib import Path
+
+
 def ids(tissue):
     """Load list of rat IDs for a tissue dataset."""
     with open(f"{tissue}/rat_ids.txt", "r") as f:
         return f.read().splitlines()
 
 
-read_length = {"IL": 100, "LHb": 100, "NAcc": 100} # etc
-
+config = yaml.safe_load(open("config.yaml"))
+read_length = config["read_length"]
+fastq_path = Path(config["fastq_path"])
 
 # These steps are short and will not be submitted as cluster jobs:
-# TODO some of these don't exist, remove those
 localrules:
-    observed_snp_list,
-    vcf_chr_list,
     index_vcf,
-    index_bam,
-    plink_sample_list,
     vcf_to_plink,
-    expression_tsv_to_bed,
-    expression_pcs,
-    combine_covariates,
-    empty_covariates,
     covariates,
 
+# Alignment and expression steps can be found in these files:
 include: "align.smk"
 include: "expression.smk"
 
@@ -37,6 +34,15 @@ rule all:
         # "Eye/Eye.aFC.txt",
         # "Eye/nominal/Eye.cis_qtl_pairs.1.parquet",
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
+
+
+rule index_vcf:
+    input:
+        "{base}.vcf.gz"
+    output:
+        "{base}.vcf.gz.tbi"
+    shell:
+        "tabix -p vcf {input}"
 
 
 rule sim_to_founders:

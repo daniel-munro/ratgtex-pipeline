@@ -4,8 +4,6 @@ rule rsem_index:
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
     output:
         "ref/rsem_reference/rsem_reference.transcripts.fa"
-    conda:
-        "envs/rsem.yaml"
     threads: 16
     shell:
         """
@@ -26,8 +24,6 @@ rule rsem:
     params:
         ref_prefix = "ref/rsem_reference/rsem_reference",
         out_prefix = "{tissue}/rsem_out/{rat_id}"
-    conda:
-        "envs/rsem.yaml"
     threads: 16
     shell:
         """

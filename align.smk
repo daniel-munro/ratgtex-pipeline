@@ -2,6 +2,9 @@ localrules:
     individual_vcf,
 
 rule star_index:
+    """Generate the index for STAR.
+    The index is tissue-specific since the read length can differ among datasets.
+    """
     input:
         fasta = "ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa",
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
@@ -26,6 +29,9 @@ rule star_index:
 
 
 rule individual_vcf:
+    """Get an individual-specific VCF file.
+    This is used by STAR to consider the individual's variants for better alignment.
+    """
     input:
         "geno/ratgtex.vcf.gz"
     output:
@@ -46,12 +52,13 @@ def fastqs(wildcards):
 
 
 def read_groups(wildcards, input):
-    """Include read group in BAM for MarkDuplicates."""
+    """Include read group in BAM for MarkDuplicates (though we currently aren't using that)."""
     rgs = expand("ID:{fq} SM:{sam}", fq=input.fastq, sam=wildcards.rat_id)
     return " , ".join(rgs)
 
 
 rule star_align:
+    """Align RNA-Seq reads for a sample using STAR."""
     input:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastqs,
@@ -63,7 +70,7 @@ rule star_align:
         bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
         fastq_list = lambda wildcards, input: ",".join(input.fastq),
-        index_dir = "ref/star_index",
+        index_dir = "{tissue}/star_index",
         prefix = "{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
     resources:

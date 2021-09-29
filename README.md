@@ -71,33 +71,41 @@ default-resources: [walltime=1, mem_mb=4000, cpus=1, partition=""]
 # partition should be e.g. "--partition=gpu"
 ```
 
-You will then find resources specified for some of the snakemake rules, which are plugged into this command and automatically submitted as cluster jobs.
+Resources are specified for some of the snakemake rules, which are plugged into this command and automatically submitted as cluster jobs.
 
-## Input files
+On TSCC, which uses TORQUE scheduling, the jobs run in the default conda environment rather than the one that is active when executing snakemake. So if you want to use an environment other than `base`, e.g. `ratgtex`, add `conda activate ratgtex` to the end of your `~/.bashrc` file. This is just a workaround since it affects which environment loads on login too, and must be modified if you want to run jobs for another project. Let me know if you find a way to either specify the environment in the Snakefile or snakemake command, or always run jobs using the active environment.
 
-I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`
+### Pan-tissue input files
 
-### `geno/ratgtex.vcf.gz`
+I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`, which you can copy or make symbolic links to.
 
-This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs.
+#### `Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}`
 
-### `geno/founders.vcf.gz`
+Rat genome files.
+
+#### `ref/Rattus_norvegicus.Rnor_6.0.99.gtf`
+
+Gene annotations.
+
+#### `geno/ratgtex.vcf.gz`
+
+This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs. If this file doesn't include all the rats for a new tissue dataset, they will have to be added to it before running the pipeline.
+
+#### `geno/founders.vcf.gz`
 
 These are the genotypes for the eight HS rat founder strains. They are used to calculate genotype covariates.
 
-### `geno/sim_to_founders.txt`
+### Dataset-specific input files
 
-These similarities to each founder strains are used as covariates. If this file exists already and new rats are added to `ratgtex.vcf.gz` for the new tissue, this file must be regenerated using `Snakefile`.
-
-### FASTQ files
+#### FASTQ files
 
 The FASTQ files can be in any accessible location. Currently only single-read RNA-Seq is implemented, but paired-end will also be supported soon.
 
-### `{tissue}/fastq_map.txt`
+#### `{tissue}/fastq_map.txt`
 
-A tab-delimited file with no header containing FASTQ file names and the rat IDs they correspond to. If multiple files map to the same ID, reads from all those files will be aligned into one BAM file. The file names can be absolute or relative paths in relation to this directory, and/or `Snakefile` can be edited to specify the path to the files.
+A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. If multiple files map to the same ID, reads from those files will be aligned into one BAM file. You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
 
-### `{tissue}/rat_ids.txt`
+#### `{tissue}/rat_ids.txt`
 
 A file listing the rat IDs for the dataset, one per line.
 
@@ -109,7 +117,7 @@ Note that this pipeline currently does not include QC steps like filtering bad s
 
 Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found.
 
-If everything is set up correctly, you can do a dry run:
+If everything is set up correctly, you can do a dry run, e.g.:
 
 `snakemake --profile slurm -j8 Eye/Eye.aFC.txt -n`
 
@@ -121,4 +129,4 @@ You may want to run a subset of the heavy raw data processing steps first, then 
 
 ## Help
 
-There are likely a number of issues remaining with this pipeline, so file an issue on this GitHub repository if anything isn't working, and I'll be happy to fix it.
+There are likely a number of issues remaining with this pipeline, so email me or file an issue on this GitHub repository if anything isn't working, and I'll be happy to fix it.

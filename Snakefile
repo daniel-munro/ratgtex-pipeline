@@ -37,6 +37,7 @@ rule all:
 
 
 rule index_vcf:
+    """Generate an index file for a VCF file."""
     input:
         "{base}.vcf.gz"
     output:
@@ -106,11 +107,10 @@ rule tensorqtl_perm:
         geno_prefix = "{tissue}/geno",
     resources:
         walltime = 12,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
+        # module load cuda
         """
-        module load cuda
-        # 
         python3 src/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
@@ -121,6 +121,7 @@ rule tensorqtl_perm:
 
 
 rule tensorqtl_independent:
+    """Use stepwise regression to identify multiple conditionally independent cis-eQTLs per gene."""
     input:
         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
@@ -133,10 +134,10 @@ rule tensorqtl_independent:
         geno_prefix = "{tissue}/geno",
     resources:
         walltime = 12,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
+        # module load cuda
         """
-        module load cuda
         python3 src/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
@@ -148,6 +149,7 @@ rule tensorqtl_independent:
 
 
 rule tensorqtl_nominal:
+    """Get summary statistics for all tested cis-window SNPs per gene."""
     input:
         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
@@ -160,11 +162,10 @@ rule tensorqtl_nominal:
         outdir = "{tissue}/nominal"
     resources:
         walltime = 12,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
+        # module load cuda
         """
-        module load cuda
-        # pip install -e ~/tools/tensorqtl
         mkdir -p {params.outdir}
         python3 -m tensorqtl \
             {params.geno_prefix} \
@@ -177,6 +178,7 @@ rule tensorqtl_nominal:
 
 
 rule tensorqtl_trans:
+    """Map trans-eQTLs."""
     input:
         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
@@ -189,11 +191,11 @@ rule tensorqtl_trans:
         outdir = "{tissue}"
     resources:
         walltime = 12,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
         # batch_size set due to "RuntimeError: CUDA out of memory"
+        # module load cuda
         """
-        module load cuda
         python3 -m tensorqtl \
             {params.geno_prefix} \
             {input.bed} \
@@ -207,6 +209,7 @@ rule tensorqtl_trans:
 
 
 rule tensorqtl_all_signif:
+    """Extract all significant cis SNP-gene pairs."""
     input:
         perm = "{tissue}/{tissue}.cis_qtl.txt.gz",
         nom = expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
@@ -219,6 +222,7 @@ rule tensorqtl_all_signif:
 
 
 rule tensorqtl_all_cis_pvals:
+    """Extract p-values for all tested cis-window SNPs per gene."""
     input:
         expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
     output:
@@ -230,6 +234,7 @@ rule tensorqtl_all_cis_pvals:
 
 
 rule aFC:
+    """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
         vcf = "geno/ratgtex.vcf.gz",
         vcfi = "geno/ratgtex.vcf.gz.tbi",

@@ -1,4 +1,5 @@
 rule rsem_index:
+    """Generate the index for RSEM."""
     input:
         fasta = "ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa",
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
@@ -16,6 +17,7 @@ rule rsem_index:
 
 
 rule rsem:
+    """Quantify expression from a BAM file."""
     input:
         ref = "ref/rsem_reference/rsem_reference.transcripts.fa",
         bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
@@ -39,6 +41,18 @@ rule rsem:
         rm {params.out_prefix}.isoforms.results
         rm -r {params.out_prefix}.stat
         """
+
+
+rule collapse_annotation:
+    """Combine all isoforms of a gene into a single transcript.
+    See https://github.com/broadinstitute/gtex-pipeline/tree/master/gene_model
+    """
+    input:
+        "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
+    output:
+        "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf"
+    shell:
+        "python3 src/collapse_annotation.py {input} {output}"
 
 
 rule assemble_expression:

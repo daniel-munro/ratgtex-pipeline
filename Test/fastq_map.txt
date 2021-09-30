@@ -1,0 +1,4 @@
+A/A1.fastq.gz	A
+A/A2.fastq.gz	A
+B/B1.fastq.gz	B
+C/C1.fastq.gz	C

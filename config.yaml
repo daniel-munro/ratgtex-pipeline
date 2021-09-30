@@ -1,3 +1,3 @@
 # Edit this or make a config file for your tissue/dataset.
 read_length: 100
-fastq_path: "../eye/data/fastq"
+fastq_path: "Test/fastq"

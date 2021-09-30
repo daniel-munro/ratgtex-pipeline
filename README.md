@@ -14,6 +14,14 @@ The main steps of the pipeline are:
 3. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes.
 4. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
 
+Snakemake automatically links the pipeline together based on input and output files. Here is how all the steps link together:
+
+![RatGTEx pipeline rulegraph](Test/rulegraph.png)
+
+Here's a more detailed version showing the inputs and outputs:
+
+![RatGTEx pipeline filegraph](Test/filegraph.png)
+
 ## Setup
 
 ### Conda environment

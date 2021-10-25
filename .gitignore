@@ -5,6 +5,8 @@ src/old
 geno/*
 ref/*
 tools/*
+*.yaml
+!config.yaml
 Adipose
 Eye
 IL

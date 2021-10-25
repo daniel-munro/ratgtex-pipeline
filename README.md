@@ -99,10 +99,6 @@ Gene annotations.
 
 This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs. If this file doesn't include all the rats for a new tissue dataset, they will have to be added to it before running the pipeline.
 
-#### `geno/founders.vcf.gz`
-
-These are the genotypes for the eight HS rat founder strains. They are used to calculate genotype covariates.
-
 ### Dataset-specific input files
 
 #### FASTQ files
@@ -111,11 +107,11 @@ The FASTQ files can be in any accessible location. Currently only single-read RN
 
 #### `{tissue}/fastq_map.txt`
 
-A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. If multiple files map to the same ID, reads from those files will be aligned into one BAM file. You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
+A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. If multiple files map to the same ID, reads from those files will be aligned into one BAM file. You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary). Any listed files whose rat IDs are not in `{tissue}/rat_ids.txt` will be ignored.
 
 #### `{tissue}/rat_ids.txt`
 
-A file listing the rat IDs for the dataset, one per line.
+A file listing the rat IDs for the dataset, one per line. This list determines which samples are included in the processing.
 
 ### Quality Control
 

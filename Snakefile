@@ -15,6 +15,7 @@ fastq_path = Path(config["fastq_path"])
 # These steps are short and will not be submitted as cluster jobs:
 localrules:
     index_vcf,
+    prune_for_covar,
     vcf_to_plink,
     covariates,
 
@@ -46,32 +47,6 @@ rule index_vcf:
         "tabix -p vcf {input}"
 
 
-rule sim_to_founders:
-    """Calculate genetic similarity of each rat to each founder strain to use as covariates.
-    Since all tissues share a VCF, this is calculated only once.
-    """
-    input:
-        pop_vcf = "geno/ratgtex.vcf.gz",
-        founder_vcf = "geno/founders.vcf.gz"
-    output:
-        "geno/sim_to_founders.txt"
-    shell:
-        "Rscript src/sim_to_founders.R {input.pop_vcf} {input.founder_vcf} {output}"
-
-
-rule covariates:
-    """Compute expression PCs and combine with genotype covariates."""
-    input:
-        geno = "geno/sim_to_founders.txt",
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-    output:
-        "{tissue}/covar.txt"
-    params:
-        n_pcs = 20
-    shell:
-        "Rscript src/covariates.R {input.geno} {input.bed} {params.n_pcs} {output}"
-
-
 rule vcf_to_plink:
     """Get SNPs that are not monomorphic in a given set of samples."""
     input:
@@ -87,9 +62,51 @@ rule vcf_to_plink:
         --vcf {input.vcf} \
         --keep {input.samples} \
         --maf 0.01 \
-        --max-maf 0.99 \
+        --mac 2 \
         --out {params.prefix}
         """
+
+
+rule prune_for_covar:
+    """Prune genotypes to compute covariate PCs.
+    --indep-pairwise parameters are based on GTEx methods.
+    """
+    input:
+        multiext("{tissue}/geno", ".bed", ".bim", ".fam")
+    output:
+        "{tissue}/covar/geno.vcf.gz"
+    params:
+        prefix = "{tissue}/geno",
+        pruned_dir = "{tissue}/covar",
+        pruned_prefix = "{tissue}/covar/geno"
+    shell:
+        """
+        mkdir -p {params.pruned_dir}
+        plink2 \
+            --bfile {params.prefix} \
+            --maf 0.05 \
+            --indep-pairwise 200 100 0.1 \
+            --out {params.pruned_prefix}
+        plink2 \
+            --bfile {params.prefix} \
+            --extract {params.pruned_prefix}.prune.in \
+            --export vcf bgz id-paste=iid \
+            --out {params.pruned_prefix}
+        """
+
+
+rule covariates:
+    """Compute genotype and expression PCs and combine."""
+    input:
+        vcf = "{tissue}/covar/geno.vcf.gz",
+        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+    output:
+        "{tissue}/covar.txt"
+    params:
+        n_geno_pcs = 5,
+        n_expr_pcs = 20
+    shell:
+        "Rscript src/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
 
 
 rule tensorqtl_perm:

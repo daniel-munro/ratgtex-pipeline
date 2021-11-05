@@ -19,8 +19,9 @@ localrules:
     vcf_to_plink,
     covariates,
 
-# Alignment and expression steps can be found in these files:
+# Alignment, quality control, and expression steps can be found in these files:
 include: "align.smk"
+include: "qc.smk"
 include: "expression.smk"
 
 
@@ -35,6 +36,8 @@ rule all:
         # "Eye/Eye.aFC.txt",
         # "Eye/nominal/Eye.cis_qtl_pairs.1.parquet",
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
+        # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose"))
+        # "Adipose/qc/rna_to_geno_summary.tsv",
 
 
 rule index_vcf:

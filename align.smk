@@ -79,20 +79,21 @@ rule star_align:
         walltime = 2
     shell:
         """
+        mkdir -p {wildcards.tissue}/star_out
         STAR --runMode alignReads \
-        --runThreadN 16 \
-        --genomeDir {params.index_dir} \
-        --readFilesIn {params.fastq_list} \
-        --readFilesCommand zcat \
-        --twopassMode Basic \
-        --varVCFfile <(zcat {input.vcf}) \
-        --waspOutputMode SAMtag \
-        --quantMode TranscriptomeSAM \
-        --outSAMstrandField intronMotif \
-        --outSAMattrRGline {params.read_groups} \
-        --outSAMtype BAM SortedByCoordinate \
-        --outSAMunmapped Within \
-        --outFileNamePrefix {params.prefix}
+            --runThreadN 16 \
+            --genomeDir {params.index_dir} \
+            --readFilesIn {params.fastq_list} \
+            --readFilesCommand zcat \
+            --twopassMode Basic \
+            --varVCFfile <(zcat {input.vcf}) \
+            --waspOutputMode SAMtag \
+            --quantMode TranscriptomeSAM \
+            --outSAMstrandField intronMotif \
+            --outSAMattrRGline {params.read_groups} \
+            --outSAMtype BAM SortedByCoordinate \
+            --outSAMunmapped Within \
+            --outFileNamePrefix {params.prefix}
         """
 
 

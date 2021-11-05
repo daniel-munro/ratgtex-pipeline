@@ -28,7 +28,7 @@ Here's a more detailed version showing the inputs and outputs:
 
 Install conda and [add the bioconda channel](https://bioconda.github.io/user/install.html#set-up-channels).
 
-Install these conda packages using e.g. `conda install snakemake` (I'm probably missing some):
+Install these packages using conda, e.g. `conda install snakemake`, or pip if indicated in parentheses:
 
 - snakemake
 - star
@@ -37,6 +37,12 @@ Install these conda packages using e.g. `conda install snakemake` (I'm probably 
 - tabix
 - bioconductor-variantannotation
 - plink2=2
+- pandas
+- bx-python
+
+For QC:
+- bcftools
+- gatk
 
 For tensorQTL:
 - tensorqtl (pip)
@@ -48,6 +54,8 @@ For aFC:
 - pysam
 - statsmodels
 - scikits-bootstrap
+
+(There's probably more that I've forgotten.)
 
 ### Software
 
@@ -113,23 +121,24 @@ A tab-delimited file with no header containing the paths to each FASTQ file and 
 
 A file listing the rat IDs for the dataset, one per line. This list determines which samples are included in the processing.
 
-### Quality Control
-
-Note that this pipeline currently does not include QC steps like filtering bad samples and correcting sample ID mixups. Instead, if QC has been performed previously e.g. in the dataset's original study, that information is reflected in `fastq_map.txt` as omitted or corrected rat IDs.
-
 ## Running
 
 Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found.
 
-If everything is set up correctly, you can do a dry run, e.g.:
+You may want to run a subset of the heavy raw data processing steps first, then move on once those are done. E.g. add the first 10 BAM files to the first rule (called 'all') in `Snakefile` and generate them:
 
-`snakemake --profile slurm -j8 Eye/Eye.aFC.txt -n`
+`snakemake --profile slurm -j10`
 
-and if the steps seem to be what you expect, run it without the `-n` tag.
+Use the `-n` dry run tag to make sure things seem to be set up correctly before running.
 
-You may want to run a subset of the heavy raw data processing steps first, then move on once those are done. E.g. add the first 10 BAM files to the first rule in `Snakefile` and generate them:
+### QC
 
-`snakemake --profile slurm -j8`
+The way to use the QC steps such as sample mixup testing is to generate the QC outputs, which will generate the BAM files as dependencies. Examine the outputs to identify samples that need to be relabeled (e.g. if two labels get swapped) or removed.
+
+- To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
+- To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
+
+After these corrections, continue with the pipeline.
 
 ## Help
 

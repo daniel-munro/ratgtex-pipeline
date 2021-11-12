@@ -11,6 +11,8 @@ def ids(tissue):
 config = yaml.safe_load(open("config.yaml"))
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
+paired_end = bool(config["paired_end"])
+assert not paired_end # TODO: implement paired-end
 
 # These steps are short and will not be submitted as cluster jobs:
 localrules:
@@ -37,7 +39,7 @@ rule all:
         # "Eye/nominal/Eye.cis_qtl_pairs.1.parquet",
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose"))
-        # "Adipose/qc/rna_to_geno_summary.tsv",
+        "Adipose/qc/rna_to_geno_summary.tsv",
 
 
 rule index_vcf:

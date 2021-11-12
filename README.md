@@ -57,7 +57,7 @@ For aFC:
 
 (There's probably more that I've forgotten.)
 
-### Software
+### Other software
 
 tensorQTL is available on pip, but install from GitHub for the latest version. I think this works:
 
@@ -105,7 +105,7 @@ Gene annotations.
 
 #### `geno/ratgtex.vcf.gz`
 
-This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs. If this file doesn't include all the rats for a new tissue dataset, they will have to be added to it before running the pipeline.
+This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs. If this file doesn't include all the rats for a new tissue dataset, they will have to be added to it before running the pipeline. It is generated using `src/merge_VCF.sh`, so add code there to process and merge the new genotypes.
 
 ### Dataset-specific input files
 
@@ -115,7 +115,10 @@ The FASTQ files can be in any accessible location. Currently only single-read RN
 
 #### `{tissue}/fastq_map.txt`
 
-A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. If multiple files map to the same ID, reads from those files will be aligned into one BAM file. You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary). Any listed files whose rat IDs are not in `{tissue}/rat_ids.txt` will be ignored.
+A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. Or, for paired-end reads, each row contains the first FASTQ path, second FASTQ path, and rat ID per file pair.
+- If multiple files map to the same ID, i.e. the ID appears in multiple rows, reads from those files will be aligned into one BAM file.
+- You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
+- Any listed files whose rat IDs are not in `{tissue}/rat_ids.txt` will be ignored.
 
 #### `{tissue}/rat_ids.txt`
 
@@ -123,22 +126,26 @@ A file listing the rat IDs for the dataset, one per line. This list determines w
 
 ## Running
 
-Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found.
+Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found. I recommend having a config file for each tissue, e.g. `Eye.yaml`, and copy the one you want to use to `config.yaml`.
+
+### QC
+
+Before running Snakemake, run `python3 src/qc_init_check.py {tissuename}`, which checks the input data and config for issues.
+
+The way to do sample mixup testing is to generate the mixup checking outputs using Snakemake, which will generate the BAM files as dependencies. Examine the outputs to identify samples that need to be relabeled (e.g. if two labels get swapped) or removed.
+
+- To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
+- To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
+
+### Continue
+
+After these corrections, continue with the pipeline.
 
 You may want to run a subset of the heavy raw data processing steps first, then move on once those are done. E.g. add the first 10 BAM files to the first rule (called 'all') in `Snakefile` and generate them:
 
 `snakemake --profile slurm -j10`
 
 Use the `-n` dry run tag to make sure things seem to be set up correctly before running.
-
-### QC
-
-The way to use the QC steps such as sample mixup testing is to generate the QC outputs, which will generate the BAM files as dependencies. Examine the outputs to identify samples that need to be relabeled (e.g. if two labels get swapped) or removed.
-
-- To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
-- To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
-
-After these corrections, continue with the pipeline.
 
 ## Help
 

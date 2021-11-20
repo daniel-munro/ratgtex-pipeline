@@ -12,7 +12,6 @@ config = yaml.safe_load(open("config.yaml"))
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired_end = bool(config["paired_end"])
-assert not paired_end # TODO: implement paired-end
 
 # These steps are short and will not be submitted as cluster jobs:
 localrules:

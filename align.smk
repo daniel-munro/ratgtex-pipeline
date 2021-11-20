@@ -1,5 +1,5 @@
 localrules:
-    individual_vcf,
+    # individual_vcf,
 
 rule star_index:
     """Generate the index for STAR.
@@ -13,7 +13,7 @@ rule star_index:
         "{tissue}/star_index/SAindex"
     params:
         outdir = "{tissue}/star_index",
-        overhang = lambda w: read_length - 1
+        overhang = read_length - 1
     # threads: 8
     resources:
         cpus = 8
@@ -40,20 +40,46 @@ rule individual_vcf:
         "bcftools view -s {wildcards.rat_id} --min-ac=1 -O z -o {output} {input}"
 
 
-def fastqs(wildcards):
-    """Get the list of FASTQ file paths for a sample."""
-    paths = []
-    with open(f"{wildcards.tissue}/fastq_map.txt", "r") as f:
+def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
+    """Get the list of FASTQ file paths for a sample.
+    If paired_end is True, return a list of two lists of corresponding paths.
+    """
+    paths = [[], []] if paired_end else []
+    with open(f"{tissue}/fastq_map.txt", "r") as f:
         for line in f.read().splitlines():
-            fastq, rat_id = line.split("\t")
-            if rat_id == wildcards.rat_id:
-                paths.append(str(fastq_path / fastq))
+            if paired_end:
+                fastq1, fastq2, r_id = line.split("\t")
+                if r_id == rat_id:
+                    paths[0].append(str(fastq_path / fastq1))
+                    paths[1].append(str(fastq_path / fastq2))
+            else:
+                fastq, r_id = line.split("\t")
+                if r_id == rat_id:
+                    paths.append(str(fastq_path / fastq))
     return paths
+
+
+def fastq_input(wildcards):
+    """Get the FASTQ input file/s for a sample.
+    If paired_end is True, concatenate into one list of files.
+    """
+    files = fastqs(wildcards.tissue, wildcards.rat_id, paired_end)
+    return files[0] + files[1] if paired_end else files
+
+
+def fastq_param(wildcards, input):
+    """Get a string listing the fastq input files, with two lists if paired_end."""
+    if paired_end:
+        files = fastqs(wildcards.tissue, wildcards.rat_id, True)
+        return " ".join([",".join(files[0]), ",".join(files[1])])
+    else:
+        return ",".join(input.fastq)
 
 
 def read_groups(wildcards, input):
     """Include read group in BAM for MarkDuplicates (though we currently aren't using that)."""
-    rgs = expand("ID:{fq} SM:{sam}", fq=input.fastq, sam=wildcards.rat_id)
+    n_fastqs = len(input.fastq) // 2 if paired_end else len(input.fastq)
+    rgs = expand("ID:{fq} SM:{sam}", fq=range(n_fastqs), sam=wildcards.rat_id)
     return " , ".join(rgs)
 
 
@@ -61,7 +87,7 @@ rule star_align:
     """Align RNA-Seq reads for a sample using STAR."""
     input:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
-        fastq = fastqs,
+        fastq = fastq_input,
         vcf = "geno/individual/{rat_id}.vcf.gz",
         index = "{tissue}/star_index/SAindex"
     output:
@@ -69,7 +95,7 @@ rule star_align:
         coord = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
         bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
-        fastq_list = lambda wildcards, input: ",".join(input.fastq),
+        fastq_list = fastq_param,
         index_dir = "{tissue}/star_index",
         prefix = "{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,

@@ -1,4 +1,4 @@
 # Edit this or make a config file for your tissue/dataset.
 read_length: 150
-fastq_path: "../bulk/fastq_eyes"
+fastq_path: "../bulk/eye/fastq"
 paired_end: true

@@ -17,7 +17,6 @@ paired_end = bool(config["paired_end"])
 localrules:
     index_vcf,
     prune_for_covar,
-    vcf_to_plink,
     covariates,
 
 # Alignment, quality control, and expression steps can be found in these files:
@@ -67,6 +66,7 @@ rule vcf_to_plink:
         --keep {input.samples} \
         --maf 0.01 \
         --mac 2 \
+        --max-alleles 2 \
         --out {params.prefix}
         """
 

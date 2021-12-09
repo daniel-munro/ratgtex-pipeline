@@ -5,14 +5,15 @@ rule rsem_index:
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
     output:
         "ref/rsem_reference/rsem_reference.transcripts.fa"
-    threads: 16
+    resources:
+        cpus = 16
     shell:
         """
         rsem-prepare-reference \
         {input.fasta} \
         ref/rsem_reference/rsem_reference \
         --gtf {input.gtf} \
-        --num-threads 16
+        --num-threads {resources.cpus}
         """
 
 
@@ -25,12 +26,16 @@ rule rsem:
         "{tissue}/rsem_out/{rat_id}.genes.results.gz"
     params:
         ref_prefix = "ref/rsem_reference/rsem_reference",
-        out_prefix = "{tissue}/rsem_out/{rat_id}"
-    threads: 16
+        out_prefix = "{tissue}/rsem_out/{rat_id}",
+        paired_end_flag = "--paired-end" if paired_end else "",
+    resources:
+        cpus = 16,
+        walltime = 4
     shell:
         """
         rsem-calculate-expression \
-        --num-threads 16 \
+        {params.paired_end_flag} \
+        --num-threads {resources.cpus} \
         --quiet \
         --estimate-rspd \
         --no-bam-output \

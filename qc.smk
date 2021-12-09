@@ -1,18 +1,7 @@
-# # Samples for alternative method (test_snps/)
-# all_sample_ids = [id for ids in sample_ids.values() for id in ids]
-# # all_sample_ids = all_sample_ids[:10]
-
 localrules:
     qc_mixups_exon_regions,
     qc_mixups_test_snps_vcf,
     qc_mixups_compare_rna_to_vcf,
-
-# rule all:
-#     input:
-#         # expand("readcounts/{sample_id}.readcounts.txt", sample_id=sample_ids["IL"]),
-#         # expand("readcounts_mixed/{sample_id}.mixed.readcounts.txt", sample_id=rand_samples),
-#         # expand("{group}.counts.txt.gz", group=["Acbc", "IL", "LHB", "PL", "VoLo", "mixed", "trymatch"])
-#         "test_snps.counts.txt.gz"
 
 
 rule qc_mixups_exon_regions:
@@ -62,6 +51,8 @@ rule qc_mixups_ASEReadCounter:
         bam = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
     output:
         "{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
+    resources:
+        walltime = 4
     shell:
         """
         mkdir -p {wildcards.tissue}/qc/test_snps
@@ -96,3 +87,43 @@ rule qc_mixups_compare_rna_to_vcf:
     shell:
         "python3 src/qc_rna_to_geno_similarity.py {input.vcf} {params.count_dir} {output.matrix} {output.summary}"
 
+
+# rule qc_mixups_test_snps_vcf_all_rats:
+#     """Get subset genotypes for all available rats for additional mixup testing.
+#     Subset to the same set of test SNPs that were counted in the RNA samples.
+#     """
+#     input:
+#         all_rat_vcf = "geno/all_rats_exons.vcf.gz",
+#         all_rat_vcfi = "geno/all_rats_exons.vcf.gz.tbi",
+#         test_snp_vcf = "{tissue}/qc/test_snps.vcf.gz",
+#         test_snp_vcfi = "{tissue}/qc/test_snps.vcf.gz",
+#     output:
+#         "{tissue}/qc/test_snps.all_rats.vcf.gz"
+#     shell:
+#         """
+#         bcftools view {input.all_rat_vcf} \
+#             --targets-file {input.test_snp_vcf} \
+#             -Oz -o {output}
+#         """
+
+
+rule qc_mixups_compare_to_all_rats:
+    """For samples without a genotype match, check for matches in all rats.
+    After running qc_mixups_compare_rna_to_vcf, some mismatched RNA samples might still
+    not have a genotype match. This rule will compare their test SNPs to those of all
+    6000+ rats we have genotypes for to see if any match. It's good to also include at
+    least one RNA sample ID that did match as a positive control.
+    """
+    input:
+        vcf = "geno/all_rats_exons.vcf.gz",
+        vcfi = "geno/all_rats_exons.vcf.gz.tbi",
+        samples = "{tissue}/qc/samples_without_matches.txt",
+    output:
+        "{tissue}/qc/all_rats_summary.tsv"
+    params:
+        count_dir = "{tissue}/qc/test_snps"
+    resources:
+        walltime = 4,
+        mem_mb = 16000
+    shell:
+        "python3 src/qc_rna_to_geno_all_rats.py {input.vcf} {params.count_dir} {input.samples} {output}"

@@ -24,7 +24,7 @@ rule star_index:
         --genomeFastaFiles {input.fasta} \
         --sjdbGTFfile {input.gtf} \
         --sjdbOverhang {params.overhang} \
-        --runThreadN 8
+        --runThreadN {resources.cpus}
         """
 
 
@@ -102,7 +102,7 @@ rule star_align:
     resources:
         mem_mb = 60000,
         cpus = 16,
-        walltime = 2
+        walltime = 4
     shell:
         """
         mkdir -p {wildcards.tissue}/star_out

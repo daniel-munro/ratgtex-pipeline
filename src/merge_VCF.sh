@@ -9,7 +9,7 @@ set -euxo pipefail
 #    it keeps the SNP and just replaces the REF allele. But we shouldn't trust those genotypes.
 
 BRAIN_DIR=~/br/data/genotype
-EYE_DIR=~/eye/data/genotype
+# EYE_DIR=~/eye/data/genotype
 ADIPOSE_DIR=~/bulk/fl/Imputed_Geno
 
 mkdir -p geno/intermediate
@@ -31,13 +31,27 @@ tabix -f geno/intermediate/brain.vcf.gz
 
 ### Eye ###
 echo '*** Preparing Eye genotypes...'
-plink2 --vcf $EYE_DIR/eyes.vcf.gz \
+## This part was run in another script:
+## Run for each chromosome:
+# chr=$1
+# bcftools view \
+#     chr${chr}.phased.6553.vcf.gz \
+#     --samples-file ~/ratgtex/Eye/rat_ids.txt \
+#     -Oz -o tmp_eye.chr${chr}.vcf.gz
+## Then combine:
+# bcftools concat \
+#     tmp_eye.chr{1..20}.vcf.gz \
+#     -Ou | bcftools annotate \
+#     --rename-chrs chrs.txt \
+#     -Oz -o geno/intermediate/eyes1.vcf.gz
+## Now for actual merge:
+plink2 --vcf geno/intermediate/eyes1.vcf.gz \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno/intermediate/eyes1
-bgzip geno/intermediate/eyes1.vcf
-bcftools norm geno/intermediate/eyes1.vcf.gz \
+    --out geno/intermediate/eyes2
+bgzip geno/intermediate/eyes2.vcf
+bcftools norm geno/intermediate/eyes2.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
@@ -66,6 +80,10 @@ bcftools merge \
     geno/intermediate/brain.vcf.gz \
     geno/intermediate/eyes.vcf.gz \
     geno/intermediate/adipose.vcf.gz \
+    -Ou | bcftools view \
+    --min-alleles 2 \
+    --max-alleles 2 \
+    --types snps \
     -O z -o geno/ratgtex_tmp.vcf.gz
 # Reheader for correct contig lengths and to remove confusing extra info:
 cp geno/header.txt geno/header_tmp.txt
@@ -89,3 +107,22 @@ tabix -f geno/ratgtex.vcf.gz
 
 # # Get true REF allele for each of those SNPs
 # samtools faidx ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa -r geno/intermediate/regions.adipose.txt
+
+
+# ### Coding SNPs for all available HS rats
+# # These are used to check for a genotype match for RNA samples still missing genotypes after mixup detection.
+# # Run for each chromosome, e.g. as a bunch of jobs:
+# chr=$1
+# bcftools annotate \
+#     chr${chr}.phased.6553.vcf.gz \
+#     --rename-chrs chrs.txt \
+#     -Oz -o tmp1.chr${chr}.vcf.gz
+# tabix -f tmp1.chr${chr}.vcf.gz
+# bcftools view tmp1.chr${chr}.vcf.gz \
+#     --regions-file ~/ratgtex/ref/exon_regions.tsv.gz \
+#     -Oz -o tmp.chr${chr}.vcf.gz
+# rm tmp1.chr${chr}.vcf.gz*
+# # Then combine:
+# bcftools concat \
+#     tmp.chr{1..20}.vcf.gz \
+#     -Oz -o all_rats_exons.vcf.gz

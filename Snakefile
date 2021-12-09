@@ -30,13 +30,11 @@ rule all:
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        # expand("Eye/markdup_out/{id}.bam", id=ids["Eye"][:10])
         # "Eye/Eye.cis_qtl_signif.txt.gz",
         # "Eye/Eye.cis_qtl_all_pvals.txt.gz",
         # "Eye/Eye.aFC.txt",
-        # "Eye/nominal/Eye.cis_qtl_pairs.1.parquet",
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
-        # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose"))
+        # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
         "Adipose/qc/rna_to_geno_summary.tsv",
 
 
@@ -270,7 +268,7 @@ rule aFC:
         walltime = 12
     shell:
         """
-        python3 ~/tools/aFC/aFC.py \
+        python3 tools/aFC/aFC.py \
         --vcf {input.vcf} \
         --pheno {input.bed} \
         --qtl <(python3 src/prepare_qtl_for_afc.py {input.qtl} {input.qtl_indep}) \

@@ -4,6 +4,7 @@
 import argparse
 import os
 import pandas as pd
+from rpy2.robjects.packages import importr
 import tensorqtl
 from tensorqtl import genotypeio, cis
 
@@ -15,6 +16,10 @@ parser.add_argument("--covariates", help="Covariates file")
 parser.add_argument("--cis_output", help="For cis_independent mode, output of tensorQTL in cis mode")
 parser.add_argument("--mode", required=True, help="Run mode: currently either cis or cis_independent")
 args = parser.parse_args()
+
+# Check for rpy2 and qvalue packages first, since otherwise tensorQTL will do
+# all the eQTL mapping and then fail.
+_ = importr("qvalue")
 
 pheno, pheno_pos = tensorqtl.read_phenotype_bed(args.expression)
 if args.covariates is not None:

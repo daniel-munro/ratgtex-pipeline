@@ -11,10 +11,11 @@ set -euxo pipefail
 BRAIN_DIR=~/br/data/genotype
 # EYE_DIR=~/eye/data/genotype
 ADIPOSE_DIR=~/bulk/fl/Imputed_Geno
+WHOLEBR_DIR=~/wb/data/genotype/TWAS_Whole_Brain
 
 mkdir -p geno/intermediate
 
-### Brain ###
+### Brain regions ###
 echo '*** Preparing Brain genotypes...'
 plink2 --vcf $BRAIN_DIR/P50.rnaseq.88.unpruned.vcf.gz \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
@@ -32,18 +33,21 @@ tabix -f geno/intermediate/brain.vcf.gz
 ### Eye ###
 echo '*** Preparing Eye genotypes...'
 ## This part was run in another script:
-## Run for each chromosome:
-# chr=$1
-# bcftools view \
-#     chr${chr}.phased.6553.vcf.gz \
-#     --samples-file ~/ratgtex/Eye/rat_ids.txt \
-#     -Oz -o tmp_eye.chr${chr}.vcf.gz
-## Then combine:
+# for chr in {1..20}; do
+#     echo $chr
+#     rsync -av tscc:/projects/ps-palmer/apurva/phased_genotypes/chr${chr}/chr${chr}.P50.6147.unpruned.vcf .
+#     bgzip chr${chr}.P50.6147.unpruned.vcf
+#     bcftools view \
+#         chr${chr}.P50.6147.unpruned.vcf.gz \
+#         --samples-file ~/ratgtex/Eye/rat_ids.txt \
+#         -Oz -o tmp_eye.chr${chr}.vcf.gz
+# done
+# # Then combine:
 # bcftools concat \
 #     tmp_eye.chr{1..20}.vcf.gz \
 #     -Ou | bcftools annotate \
 #     --rename-chrs chrs.txt \
-#     -Oz -o geno/intermediate/eyes1.vcf.gz
+#     -Oz -o ../intermediate/eyes1.vcf.gz
 ## Now for actual merge:
 plink2 --vcf geno/intermediate/eyes1.vcf.gz \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
@@ -74,13 +78,33 @@ bcftools norm geno/intermediate/adipose1.vcf.gz \
     -O z -o geno/intermediate/adipose.vcf.gz
 tabix -f geno/intermediate/adipose.vcf.gz
 
+### Brain
+echo '*** Preparing whole brain genotypes...'
+plink2 --vcf $WHOLEBR_DIR/Heterogenous-stock_n4140_11152021_stitch1_NO_QC_TWAS_Whole_Brain_n322.vcf.gz \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
+    --ref-from-fa force \
+    --recode vcf \
+    --out geno/intermediate/wholebrain1
+bgzip geno/intermediate/wholebrain1.vcf
+bcftools norm geno/intermediate/wholebrain1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL \
+    -O z -o geno/intermediate/wholebrain.vcf.gz
+tabix -f geno/intermediate/wholebrain.vcf.gz
+
 ### Merge ###
 echo '*** Merging across datasets...'
-bcftools merge \
-    geno/intermediate/brain.vcf.gz \
-    geno/intermediate/eyes.vcf.gz \
-    geno/intermediate/adipose.vcf.gz \
-    -Ou | bcftools view \
+# bcftools merge \
+#     geno/intermediate/eyes.vcf.gz \
+#     geno/intermediate/adipose.vcf.gz \
+#     geno/intermediate/brain.vcf.gz \
+#     -Ou | bcftools view \
+bcftools view \
+    geno/intermediate/wholebrain.vcf.gz \
     --min-alleles 2 \
     --max-alleles 2 \
     --types snps \
@@ -114,7 +138,7 @@ tabix -f geno/ratgtex.vcf.gz
 # # Run for each chromosome, e.g. as a bunch of jobs:
 # chr=$1
 # bcftools annotate \
-#     chr${chr}.phased.6553.vcf.gz \
+#     chr${chr}.P50.6147.unpruned.vcf.gz \
 #     --rename-chrs chrs.txt \
 #     -Oz -o tmp1.chr${chr}.vcf.gz
 # tabix -f tmp1.chr${chr}.vcf.gz

@@ -102,12 +102,12 @@ rule star_align:
     resources:
         mem_mb = 60000,
         cpus = 16,
-        walltime = 4
+        walltime = 8
     shell:
         """
         mkdir -p {wildcards.tissue}/star_out
         STAR --runMode alignReads \
-            --runThreadN 16 \
+            --runThreadN {resources.cpus} \
             --genomeDir {params.index_dir} \
             --readFilesIn {params.fastq_list} \
             --readFilesCommand zcat \

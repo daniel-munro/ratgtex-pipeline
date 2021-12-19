@@ -25,7 +25,8 @@ rule qc_mixups_test_snps_vcf:
         samples = "{tissue}/rat_ids.txt",
         regions = "ref/exon_regions.tsv.gz",
     output:
-        "{tissue}/qc/test_snps.vcf.gz"
+        vcf = "{tissue}/qc/test_snps.vcf.gz",
+        vcfi = "{tissue}/qc/test_snps.vcf.gz.tbi",
     shell:
         """
         mkdir -p {wildcards.tissue}/qc
@@ -35,7 +36,8 @@ rule qc_mixups_test_snps_vcf:
             -Ou | bcftools view \
             --min-af 0.2:minor \
             -i 'F_MISSING<0.1' \
-            -Oz -o {output}
+            -Oz -o {output.vcf}
+        tabix -p vcf {output.vcf}
         """
 
 
@@ -112,7 +114,8 @@ rule qc_mixups_compare_to_all_rats:
     After running qc_mixups_compare_rna_to_vcf, some mismatched RNA samples might still
     not have a genotype match. This rule will compare their test SNPs to those of all
     6000+ rats we have genotypes for to see if any match. It's good to also include at
-    least one RNA sample ID that did match as a positive control.
+    least one RNA sample ID that did match as a positive control (as long as it's included
+    in the all-rat VCF).
     """
     input:
         vcf = "geno/all_rats_exons.vcf.gz",

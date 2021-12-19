@@ -10,9 +10,10 @@ To add a new tissue to RatGTEx:
 
 The main steps of the pipeline are:
 1. Align RNA-Seq reads using [STAR](https://github.com/alexdobin/STAR).
-2. Quantify gene expression using [RSEM](https://deweylab.github.io/RSEM/).
-3. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes.
-4. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
+2. Checking for and fixing sample mixups.
+3. Quantify gene expression using [RSEM](https://deweylab.github.io/RSEM/).
+4. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes.
+5. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
 
 Snakemake automatically links the pipeline together based on input and output files. Here is how all the steps link together:
 
@@ -109,7 +110,7 @@ This is the merge of genotypes from all rats across tissues. This is done to uni
 
 #### `geno/all_rats_exons.vcf.gz`
 
-This contains the genotypes for exon regions from all 6553 HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes.
+This contains the genotypes for exon regions from all 6147 HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes.
 
 ### Dataset-specific input files
 
@@ -145,7 +146,7 @@ The way to do sample mixup testing is to generate the mixup checking outputs usi
 - To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
-Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control. Then generate `{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to `ratgtex.vcf.gz` (see `src/merge_VCF.sh`).
+Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to `ratgtex.vcf.gz` (see `src/merge_VCF.sh`).
 
 ### Continue
 

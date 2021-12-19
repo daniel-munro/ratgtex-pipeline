@@ -15,7 +15,7 @@ paired_end = bool(config["paired_end"])
 
 # These steps are short and will not be submitted as cluster jobs:
 localrules:
-    index_vcf,
+    # index_vcf,
     prune_for_covar,
     covariates,
 
@@ -35,17 +35,19 @@ rule all:
         # "Eye/Eye.aFC.txt",
         # "Eye/Eye.trans_qtl_pairs.txt.gz",
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
-        "Adipose/qc/rna_to_geno_summary.tsv",
+        # "Adipose/qc/rna_to_geno_summary.tsv",
+        # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
+        "Brain/qc/rna_to_geno_summary.tsv",
 
 
-rule index_vcf:
-    """Generate an index file for a VCF file."""
-    input:
-        "{base}.vcf.gz"
-    output:
-        "{base}.vcf.gz.tbi"
-    shell:
-        "tabix -p vcf {input}"
+# rule index_vcf:
+#     """Generate an index file for a VCF file."""
+#     input:
+#         "{base}.vcf.gz"
+#     output:
+#         "{base}.vcf.gz.tbi"
+#     shell:
+#         "tabix -p vcf {input}"
 
 
 rule vcf_to_plink:

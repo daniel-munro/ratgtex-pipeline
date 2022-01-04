@@ -33,11 +33,16 @@ rule individual_vcf:
     This is used by STAR to consider the individual's variants for better alignment.
     """
     input:
-        "geno/ratgtex.vcf.gz"
+        f"geno/{geno_dataset}.vcf.gz"
     output:
-        "geno/individual/{rat_id}.vcf.gz"
+        f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz"
+    params:
+        outdir = f"geno/individual/{geno_dataset}
     shell:
-        "bcftools view -s {wildcards.rat_id} --min-ac=1 -O z -o {output} {input}"
+        """
+        mkdir -p {params.outdir}
+        bcftools view -s {wildcards.rat_id} --min-ac=1 -O z -o {output} {input}
+        """
 
 
 def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
@@ -88,7 +93,7 @@ rule star_align:
     input:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastq_input,
-        vcf = "geno/individual/{rat_id}.vcf.gz",
+        vcf = f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz",
         index = "{tissue}/star_index/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.

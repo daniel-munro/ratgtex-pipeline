@@ -20,8 +20,8 @@ rule qc_mixups_test_snps_vcf:
     MAF >= 0.2, and SNPs with <10% missing values.
     """
     input:
-        vcf = "geno/ratgtex.vcf.gz",
-        vcfi = "geno/ratgtex.vcf.gz.tbi",
+        vcf = f"geno/{geno_dataset}.vcf.gz",
+        vcfi = f"geno/{geno_dataset}.vcf.gz.tbi",
         samples = "{tissue}/rat_ids.txt",
         regions = "ref/exon_regions.tsv.gz",
     output:

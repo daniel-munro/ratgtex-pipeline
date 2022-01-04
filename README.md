@@ -104,10 +104,6 @@ Rat genome files.
 
 Gene annotations.
 
-#### `geno/ratgtex.vcf.gz`
-
-This is the merge of genotypes from all rats across tissues. This is done to unify the format of original genotypes, and because the portal expects a single set of SNPs, even if some tissues don't have genotypes for some SNPs. If this file doesn't include all the rats for a new tissue dataset, they will have to be added to it before running the pipeline. It is generated using `src/merge_VCF.sh`, so add code there to process and merge the new genotypes.
-
 #### `geno/all_rats_exons.vcf.gz`
 
 This contains the genotypes for exon regions from all 6147 HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes.
@@ -129,9 +125,13 @@ A tab-delimited file with no header containing the paths to each FASTQ file and 
 
 A file listing the rat IDs for the dataset, one per line. This list determines which samples are included in the processing.
 
+#### `geno/{dataset}.vcf.gz`
+
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `src/genotypes.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+
 ## Running
 
-Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found. I recommend having a config file for each tissue, e.g. `Eye.yaml`, and copy the one you want to use to `config.yaml`.
+Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found. I recommend having a config file for each tissue or project-of-origin, e.g. `Eye.yaml`, and copy the one you want to use to `config.yaml`.
 
 ### QC
 
@@ -146,7 +146,7 @@ The way to do sample mixup testing is to generate the mixup checking outputs usi
 - To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
-Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to `ratgtex.vcf.gz` (see `src/merge_VCF.sh`).
+Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `src/genotypes.sh`).
 
 ### Continue
 

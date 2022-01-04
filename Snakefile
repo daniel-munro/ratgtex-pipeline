@@ -12,6 +12,7 @@ config = yaml.safe_load(open("config.yaml"))
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired_end = bool(config["paired_end"])
+geno_dataset = config["geno_dataset"]
 
 # These steps are short and will not be submitted as cluster jobs:
 localrules:
@@ -53,7 +54,7 @@ rule all:
 rule vcf_to_plink:
     """Get SNPs that are not monomorphic in a given set of samples."""
     input:
-        vcf = "geno/ratgtex.vcf.gz",
+        vcf = f"geno/{geno_dataset}.vcf.gz",
         samples = "{tissue}/rat_ids.txt"
     output:
         multiext("{tissue}/geno", ".bed", ".bim", ".fam")
@@ -257,8 +258,8 @@ rule tensorqtl_all_cis_pvals:
 rule aFC:
     """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
-        vcf = "geno/ratgtex.vcf.gz",
-        vcfi = "geno/ratgtex.vcf.gz.tbi",
+        vcf = f"geno/{geno_dataset}.vcf.gz",
+        vcfi = f"geno/{geno_dataset}.vcf.gz.tbi",
         bed = "{tissue}/{tissue}.expr.log2.bed.gz",
         bedi = "{tissue}/{tissue}.expr.log2.bed.gz.tbi",
         qtl = "{tissue}/{tissue}.cis_qtl.txt.gz",

@@ -38,7 +38,13 @@ rule all:
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
         # "Adipose/qc/rna_to_geno_summary.tsv",
         # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
-        "Brain/qc/rna_to_geno_summary.tsv",
+        # "Brain/qc/rna_to_geno_summary.tsv",
+        # expand("PL2/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("PL2")),
+        # "PL2/qc/rna_to_geno_summary.tsv",
+        "PL2/PL2.cis_qtl_signif.txt.gz",
+        "PL2/PL2.cis_qtl_all_pvals.txt.gz",
+        "PL2/PL2.aFC.txt",
+        "PL2/PL2.trans_qtl_pairs.txt.gz",
 
 
 # rule index_vcf:
@@ -85,10 +91,12 @@ rule prune_for_covar:
         pruned_dir = "{tissue}/covar",
         pruned_prefix = "{tissue}/covar/geno"
     shell:
+        # --geno 0.05 filters variants with >5% missing values (the rest will be imputed)
         """
         mkdir -p {params.pruned_dir}
         plink2 \
             --bfile {params.prefix} \
+            --geno 0.05 \
             --maf 0.05 \
             --indep-pairwise 200 100 0.1 \
             --out {params.pruned_prefix}

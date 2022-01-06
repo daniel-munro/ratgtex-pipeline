@@ -37,7 +37,7 @@ rule individual_vcf:
     output:
         f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz"
     params:
-        outdir = f"geno/individual/{geno_dataset}
+        outdir = f"geno/individual/{geno_dataset}"
     shell:
         """
         mkdir -p {params.outdir}

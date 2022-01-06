@@ -1,4 +1,5 @@
 suppressPackageStartupMessages(library(VariantAnnotation))
+library(impute)
 
 load_geno <- function(filename) {
     gt <- readGT(filename)
@@ -9,6 +10,9 @@ load_geno <- function(filename) {
 }
 
 get_PCs <- function(df, n_pcs) {
+    if (sum(is.na(df)) > 0) {
+        df <- impute.knn(df)$data # Expects samples as columns
+    }
     df <- df[apply(df, 1, var) != 0, ]
     pca <- prcomp(t(df), center = TRUE, scale = TRUE)
     pcs <- round(pca$x[, 1:n_pcs], 6)

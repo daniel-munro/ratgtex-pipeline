@@ -12,11 +12,12 @@ BRAIN_REGION_DIR=~/br/data/genotype
 # EYE_DIR=~/eye/data/genotype
 ADIPOSE_LIVER_DIR=~/bulk/fl/Imputed_Geno
 WHOLEBR_DIR=~/wb/data/genotype/TWAS_Whole_Brain
+MITCHELL_DIR=~/sm/data/genotype/Mitchell_Hitzemann
 
 mkdir -p geno/intermediate
 
 # ### brain_regions ###
-# echo '*** Preparing Brain genotypes...'
+# echo '*** Preparing Brain region genotypes...'
 # plink2 --vcf $BRAIN_REGION_DIR/P50.rnaseq.88.unpruned.vcf.gz \
 #     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
 #     --ref-from-fa force \
@@ -96,25 +97,39 @@ mkdir -p geno/intermediate
 #     -O z -o geno/intermediate/whole_brain.vcf.gz
 # tabix -f geno/intermediate/whole_brain.vcf.gz
 
-### u01_suzanne_mitchell ###
+# ### u01_suzanne_mitchell ###
+# echo '*** Preparing u01_suzanne_mitchell genotypes...'
+# plink2 --vcf $MITCHELL_DIR/Heterogenous-stock_n4140_11152021_stitch1_QC_sex_missing_het_pass_Mitchell_Hitzemann_n191.vcf.gz \
+#     --set-all-var-ids 'chr@:#' \
+#     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
+#     --ref-from-fa force \
+#     --recode vcf \
+#     --out geno/intermediate/u01_suzanne_mitchell.1
+# bgzip geno/intermediate/u01_suzanne_mitchell.1.vcf
+# bcftools norm geno/intermediate/u01_suzanne_mitchell.1.vcf.gz \
+#     --rm-dup snps \
+#     --check-ref x \
+#     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
+#     -Ou | bcftools annotate \
+#     -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL \
+#     -O z -o geno/intermediate/u01_suzanne_mitchell.vcf.gz
+# tabix -f geno/intermediate/u01_suzanne_mitchell.vcf.gz
 
-
-### Final processing ###
+# ### Final processing ###
 # for DSET in brain_regions eye adipose_liver whole_brain u01_suzanne_mitchell; do
-for DSET in brain_regions eye adipose_liver whole_brain; do
-    echo "*** Final processing: $DSET..."
-    bcftools view geno/intermediate/$DSET.vcf.gz \
-        --min-alleles 2 \
-        --max-alleles 2 \
-        --types snps \
-        -O z -o geno/$DSET.tmp.vcf.gz
-    # Reheader for correct contig lengths and to remove confusing extra info:
-    cp geno/header.txt geno/header.tmp.txt
-    bcftools view -h geno/$DSET.tmp.vcf.gz | grep '^#CHROM' >> geno/header.tmp.txt
-    bcftools reheader -h geno/header.tmp.txt geno/$DSET.tmp.vcf.gz -o geno/$DSET.vcf.gz
-    rm geno/$DSET.tmp.vcf.gz geno/header.tmp.txt
-    tabix -f geno/$DSET.vcf.gz
-done
+#     echo "*** Final processing: $DSET..."
+#     bcftools view geno/intermediate/$DSET.vcf.gz \
+#         --min-alleles 2 \
+#         --max-alleles 2 \
+#         --types snps \
+#         -O z -o geno/$DSET.tmp.vcf.gz
+#     # Reheader for correct contig lengths and to remove confusing extra info:
+#     cp geno/header.txt geno/header.tmp.txt
+#     bcftools view -h geno/$DSET.tmp.vcf.gz | grep '^#CHROM' >> geno/header.tmp.txt
+#     bcftools reheader -h geno/header.tmp.txt geno/$DSET.tmp.vcf.gz -o geno/$DSET.vcf.gz
+#     rm geno/$DSET.tmp.vcf.gz geno/header.tmp.txt
+#     tabix -f geno/$DSET.vcf.gz
+# done
 
 # NOTE we no longer merge the dataset VCFs. Instead, do final processing steps for each one, see above.
 ### Merge ###

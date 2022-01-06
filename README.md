@@ -37,6 +37,7 @@ Install these packages using conda, e.g. `conda install snakemake`, or pip if in
 - gtfparse
 - tabix
 - bioconductor-variantannotation
+- bioconductor-impute
 - plink2=2
 - pandas
 - bx-python

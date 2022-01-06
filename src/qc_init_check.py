@@ -19,14 +19,16 @@ config = yaml.safe_load(open("config.yaml"))
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired = bool(config["paired_end"])
+geno_dataset = config["geno_dataset"]
 
 print(f"INFO: Paired-end sequencing: {paired}")
 print(f"INFO: Read length is set to {read_length} in config.yaml. Ensure this is correct.")
+print(f"INFO: Using geno/{geno_dataset}.vcf.gz")
 
 if paired:
-    fastqs = pd.read_csv(f"{args.tissue}/fastq_map.txt", sep="\t", names=["fastq1", "fastq2", "rat_id"])
+    fastqs = pd.read_csv(f"{args.tissue}/fastq_map.txt", sep="\t", names=["fastq1", "fastq2", "rat_id"], dtype=str)
 else:
-    fastqs = pd.read_csv(f"{args.tissue}/fastq_map.txt", sep="\t", names=["fastq", "rat_id"])
+    fastqs = pd.read_csv(f"{args.tissue}/fastq_map.txt", sep="\t", names=["fastq", "rat_id"], dtype=str)
 
 for rat_id in ids:
     if not rat_id in fastqs["rat_id"].values:
@@ -51,7 +53,7 @@ for i in range(fastqs.shape[0]):
             raise Exception(f"{fastq} not found")
 print("PASS: All necessary FASTQ files exist")
 
-vcf = pysam.VariantFile("geno/ratgtex.vcf.gz")
+vcf = pysam.VariantFile(f"geno/{geno_dataset}.vcf.gz")
 samples = list(vcf.header.samples)
 missing = [id for id in ids if not id in samples]
 if len(missing) > 0:

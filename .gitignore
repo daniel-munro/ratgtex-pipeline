@@ -8,11 +8,13 @@ tools/*
 *.yaml
 !config.yaml
 Adipose
+BLA
 Brain
 Eye
 IL
 LHb
 NAcc
+NAcc2
 OFC
 PL
 PL2

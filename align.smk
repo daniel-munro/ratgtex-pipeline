@@ -3,16 +3,16 @@ localrules:
 
 rule star_index:
     """Generate the index for STAR.
-    The index is tissue-specific since the read length can differ among datasets.
+    A different index is generated for each read length.
     """
     input:
         fasta = "ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa",
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
     output:
         # Among others:
-        "{tissue}/star_index/SAindex"
+        f"ref/star_index_{read_length}/SAindex"
     params:
-        outdir = "{tissue}/star_index",
+        outdir = f"ref/star_index_{read_length}",
         overhang = read_length - 1
     # threads: 8
     resources:
@@ -94,20 +94,20 @@ rule star_align:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastq_input,
         vcf = f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz",
-        index = "{tissue}/star_index/SAindex"
+        index = f"ref/star_index_{read_length}/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.
         coord = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
         bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
         fastq_list = fastq_param,
-        index_dir = "{tissue}/star_index",
+        index_dir = f"ref/star_index_{read_length}",
         prefix = "{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
     resources:
         mem_mb = 60000,
         cpus = 16,
-        walltime = 8
+        walltime = 12
     shell:
         """
         mkdir -p {wildcards.tissue}/star_out

@@ -31,20 +31,16 @@ rule all:
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        # "Eye/Eye.cis_qtl_signif.txt.gz",
-        # "Eye/Eye.cis_qtl_all_pvals.txt.gz",
-        # "Eye/Eye.aFC.txt",
-        # "Eye/Eye.trans_qtl_pairs.txt.gz",
+        # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
         # "Adipose/qc/rna_to_geno_summary.tsv",
-        # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
-        # "Brain/qc/rna_to_geno_summary.tsv",
-        # expand("PL2/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("PL2")),
-        # "PL2/qc/rna_to_geno_summary.tsv",
-        "PL2/PL2.cis_qtl_signif.txt.gz",
-        "PL2/PL2.cis_qtl_all_pvals.txt.gz",
-        "PL2/PL2.aFC.txt",
-        "PL2/PL2.trans_qtl_pairs.txt.gz",
+        # expand("NAcc2/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("NAcc2")),
+        # expand("NAcc2/rsem_out/{rat_id}.genes.results.gz", rat_id=ids("NAcc2")),
+        # "NAcc2/qc/rna_to_geno_summary.tsv",
+        "NAcc2/NAcc2.cis_qtl_signif.txt.gz",
+        "NAcc2/NAcc2.cis_qtl_all_pvals.txt.gz",
+        "NAcc2/NAcc2.aFC.txt",
+        "NAcc2/NAcc2.trans_qtl_pairs.txt.gz",
 
 
 # rule index_vcf:

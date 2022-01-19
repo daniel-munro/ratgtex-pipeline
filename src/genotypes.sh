@@ -131,6 +131,22 @@ for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
     tabix -f geno/$DSET.vcf.gz
 done
 
+### Get all alleles ###
+## -m none
+## --force-samples
+## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
+bcftools merge \
+    -m none \
+    --force-samples \
+    geno/intermediate/Adipose_Liver.vcf.gz \
+    geno/intermediate/BLA_NAcc2_PL2.vcf.gz \
+    geno/intermediate/Brain.vcf.gz \
+    geno/intermediate/Eye.vcf.gz \
+    geno/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
+    -Ou | bcftools view \
+    --drop-genotypes \
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz
+
 ### Troubleshooting
 
 # #Get SNPs with multiple REF alleles (i.e. wrong allele in at least one dataset)

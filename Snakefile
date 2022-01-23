@@ -33,14 +33,15 @@ rule all:
     input:
         # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
-        # "Adipose/qc/rna_to_geno_summary.tsv",
+        "Adipose/qc/rna_to_geno_summary.tsv",
+        "Adipose/qc/all_rats_summary.tsv",
         # expand("NAcc2/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("NAcc2")),
         # expand("NAcc2/rsem_out/{rat_id}.genes.results.gz", rat_id=ids("NAcc2")),
         # "NAcc2/qc/rna_to_geno_summary.tsv",
-        "NAcc2/NAcc2.cis_qtl_signif.txt.gz",
-        "NAcc2/NAcc2.cis_qtl_all_pvals.txt.gz",
-        "NAcc2/NAcc2.aFC.txt",
-        "NAcc2/NAcc2.trans_qtl_pairs.txt.gz",
+        # "NAcc2/NAcc2.cis_qtl_signif.txt.gz",
+        # "NAcc2/NAcc2.cis_qtl_all_pvals.txt.gz",
+        # "NAcc2/NAcc2.aFC.txt",
+        # "NAcc2/NAcc2.trans_qtl_pairs.txt.gz",
 
 
 # rule index_vcf:

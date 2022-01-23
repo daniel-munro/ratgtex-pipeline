@@ -21,27 +21,30 @@ parser.add_argument(
     type=Path,
     help="Directory containing ASEReadCounter outputs named {sample_id}.readcounts.txt",
 )
+parser.add_argument("samples", type=Path, help="File containing sample IDs, one per line, to check")
 parser.add_argument(
     "out_matrix", type=Path, help="Output file for matrix of RNA/genotype similarities"
 )
 parser.add_argument("out_summary", type=Path, help="Output file for summary table")
 args = parser.parse_args()
 
+with args.samples.open() as f:
+    samples = f.read().splitlines()
 vcf = pysam.VariantFile(args.vcf)
-samples = list(vcf.header.samples)
-geno = {sample: {} for sample in samples}
+geno_samples = list(vcf.header.samples)
+geno = {sample: {} for sample in geno_samples}
 for rec in vcf.fetch():
-    for sample in samples:
+    for sample in geno_samples:
         geno[sample][rec.id] = geno_frac_alt(rec.samples[sample]["GT"])
 
 # Make table of similarities for RNA samples vs. genotype rats
-simil = pd.DataFrame(index=samples, columns=samples, dtype=float)
+simil = pd.DataFrame(index=samples, columns=geno_samples, dtype=float)
 for sample in samples:
     counts = pd.read_csv(
         args.count_dir / f"{sample}.readcounts.txt", sep="\t", index_col=2
     )
     counts["frac_alt"] = counts["altCount"] / (counts["refCount"] + counts["altCount"])
-    for geno_sam in samples:
+    for geno_sam in geno_samples:
         snps = [snp for snp in counts.index if geno[geno_sam][snp] is not None]
         diff = counts.loc[snps, "frac_alt"] - [geno[geno_sam][snp] for snp in snps]
         sim = np.mean(1 - np.abs(diff))

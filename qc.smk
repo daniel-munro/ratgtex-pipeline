@@ -16,23 +16,22 @@ rule qc_mixups_exon_regions:
 
 rule qc_mixups_test_snps_vcf:
     """Get subset genotypes for mixup testing.
-    Subset to only exon SNPs, only individuals for the given tissue, SNPs with
-    MAF >= 0.2, and SNPs with <10% missing values.
+    Subset to only exon SNPs, SNPs with MAF >= 0.2, and SNPs with <10% missing values.
     """
     input:
         vcf = f"geno/{geno_dataset}.vcf.gz",
         vcfi = f"geno/{geno_dataset}.vcf.gz.tbi",
-        samples = "{tissue}/rat_ids.txt",
+        # samples = "{tissue}/rat_ids.txt",
         regions = "ref/exon_regions.tsv.gz",
     output:
         vcf = "{tissue}/qc/test_snps.vcf.gz",
         vcfi = "{tissue}/qc/test_snps.vcf.gz.tbi",
     shell:
+            # --samples-file {input.samples} \
         """
         mkdir -p {wildcards.tissue}/qc
         bcftools view {input.vcf} \
             --regions-file {input.regions} \
-            --samples-file {input.samples} \
             -Ou | bcftools view \
             --min-af 0.2:minor \
             -i 'F_MISSING<0.1' \
@@ -81,13 +80,14 @@ rule qc_mixups_compare_rna_to_vcf:
         vcf = "{tissue}/qc/test_snps.vcf.gz",
         vcfi = "{tissue}/qc/test_snps.vcf.gz.tbi",
         counts = lambda w: expand("{{tissue}}/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids(w.tissue)),
+        samples = "{tissue}/rat_ids.txt",
     output:
         matrix = "{tissue}/qc/rna_to_geno_similarity.tsv",
         summary = "{tissue}/qc/rna_to_geno_summary.tsv",
     params:
         count_dir = "{tissue}/qc/test_snps"
     shell:
-        "python3 src/qc_rna_to_geno_similarity.py {input.vcf} {params.count_dir} {output.matrix} {output.summary}"
+        "python3 src/qc_rna_to_geno_similarity.py {input.vcf} {params.count_dir} {input.samples} {output.matrix} {output.summary}"
 
 
 # rule qc_mixups_test_snps_vcf_all_rats:

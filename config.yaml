@@ -1,4 +1,5 @@
 # Edit this or make a config file for your tissue/dataset.
-read_length: 150
-fastq_path: "../bulk/eye/fastq"
-paired_end: true
+read_length: 76
+fastq_path: "../bulk/fl/Raw_RNA/Fat"
+paired_end: false
+geno_dataset: "Adipose_Liver"

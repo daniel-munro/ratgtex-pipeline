@@ -1,5 +1,4 @@
-# Edit this or make a config file for your tissue/dataset.
-read_length: 76
-fastq_path: "../bulk/fl/Raw_RNA/Fat"
+read_length: 100
+fastq_path: "../gpfs/fastq"
 paired_end: false
-geno_dataset: "Adipose_Liver"
+geno_dataset: "IL_LHb_NAcc_OFC_PL"

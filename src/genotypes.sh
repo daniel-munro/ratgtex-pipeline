@@ -11,7 +11,7 @@ set -euxo pipefail
 BRAIN_REGION_DIR=~/br/data/genotype
 # EYE_DIR=~/eye/data/genotype
 ADIPOSE_LIVER_DIR=~/bulk/fl/Imputed_Geno
-WHOLEBR_DIR=~/wb/data/genotype/TWAS_Whole_Brain
+WHOLEBR_DIR=~/wb/data/genotype
 MITCHELL_DIR=~/sm/data/genotype/Mitchell_Hitzemann
 
 mkdir -p geno/intermediate
@@ -81,18 +81,22 @@ tabix -f geno/intermediate/Adipose_Liver.vcf.gz
 
 ### Brain ###
 echo '*** Preparing whole brain genotypes...'
-plink2 --vcf $WHOLEBR_DIR/Heterogenous-stock_n4140_11152021_stitch1_NO_QC_TWAS_Whole_Brain_n322.vcf.gz \
+plink2 --vcf $WHOLEBR_DIR/Whole_brain_n7521_05102022_stitch2_QC_Sex_Het_pass_n345.vcf.gz \
     --set-all-var-ids 'chr@:#' \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
     --out geno/intermediate/Brain.1
 bgzip geno/intermediate/Brain.1.vcf
+# Remove Riptide prefix from sample IDs
+zcat geno/intermediate/Brain.1.vcf.gz | head -100 | grep "^#CHROM" | cut -f 10- | sed 's/\t/\n/g' | awk -F'_' '{print $1 "_" $2 "\t" $2}' > geno/intermediate/Brain_rename.txt
 bcftools norm geno/intermediate/Brain.1.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
-    -Ou | bcftools annotate \
+    -Ou | bcftools reheader \
+    -s geno/intermediate/Brain_rename.txt \
+    | bcftools annotate \
     -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL \
     -O z -o geno/intermediate/Brain.vcf.gz
 tabix -f geno/intermediate/Brain.vcf.gz
@@ -116,7 +120,8 @@ bcftools norm geno/intermediate/BLA_NAcc2_PL2.1.vcf.gz \
 tabix -f geno/intermediate/BLA_NAcc2_PL2.vcf.gz
 
 ### Final processing ###
-for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
+# for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
+for DSET in Brain; do
     echo "*** Final processing: $DSET..."
     bcftools view geno/intermediate/$DSET.vcf.gz \
         --min-alleles 2 \

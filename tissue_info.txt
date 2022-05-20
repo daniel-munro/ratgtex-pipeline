@@ -1,0 +1,12 @@
+tissueSiteDetailId	tissueSiteDetail	tissueSite	colorHex	colorRgb	dataset
+Adipose	Adipose	Adipose	17d2eb	23,210,235	Adipose_Liver
+BLA	Basolateral amygdala	Brain	ffd700	255,215,0	BLA_NAcc2_PL2
+Eye	Eye	Eye	ff66ff	255,102,255	Eye
+IL	Infralimbic cortex	Brain	377eb8	55,126,184	IL_LHb_NAcc_OFC_PL
+LHb	Lateral habenula	Brain	4daf4a	77,175,74	IL_LHb_NAcc_OFC_PL
+Liver	Liver	Liver	c2fa82	194,250,130	Adipose_Liver
+NAcc	Nucleus accumbens core	Brain	e41a1c	228,26,28	IL_LHb_NAcc_OFC_PL
+NAcc2	Nucleus accumbens core 2	Brain	cc6668	204,102,104	BLA_NAcc2_PL2
+OFC	Orbitofrontal cortex	Brain	ff7f00	255,127,0	IL_LHb_NAcc_OFC_PL
+PL	Prelimbic cortex	Brain	984ea3	152,78,163	IL_LHb_NAcc_OFC_PL
+PL2	Prelimbic cortex 2	Brain	af7ab8	175,122,184	BLA_NAcc2_PL2

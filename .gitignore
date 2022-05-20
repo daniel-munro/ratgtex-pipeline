@@ -5,6 +5,7 @@ src/old
 geno/*
 ref/*
 tools/*
+samples
 *.yaml
 !config.yaml
 Adipose

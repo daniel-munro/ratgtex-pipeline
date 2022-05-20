@@ -30,7 +30,7 @@ rule rsem:
         paired_end_flag = "--paired-end" if paired_end else "",
     resources:
         cpus = 16,
-        walltime = 4
+        walltime = 8
     shell:
         """
         rsem-calculate-expression \

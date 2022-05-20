@@ -107,7 +107,7 @@ rule star_align:
     resources:
         mem_mb = 60000,
         cpus = 16,
-        walltime = 12
+        walltime = 20
     shell:
         """
         mkdir -p {wildcards.tissue}/star_out

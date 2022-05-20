@@ -53,7 +53,7 @@ rule qc_mixups_ASEReadCounter:
     output:
         "{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
     resources:
-        walltime = 4
+        walltime = 16
     shell:
         """
         mkdir -p {wildcards.tissue}/qc/test_snps

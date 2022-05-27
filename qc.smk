@@ -1,7 +1,7 @@
 localrules:
     qc_mixups_exon_regions,
     qc_mixups_test_snps_vcf,
-    qc_mixups_compare_rna_to_vcf,
+    # qc_mixups_compare_rna_to_vcf,
 
 
 rule qc_mixups_exon_regions:
@@ -86,6 +86,9 @@ rule qc_mixups_compare_rna_to_vcf:
         summary = "{tissue}/qc/rna_to_geno_summary.tsv",
     params:
         count_dir = "{tissue}/qc/test_snps"
+    resources:
+        walltime = 4,
+        mem_mb = 16000
     shell:
         "python3 src/qc_rna_to_geno_similarity.py {input.vcf} {params.count_dir} {input.samples} {output.matrix} {output.summary}"
 

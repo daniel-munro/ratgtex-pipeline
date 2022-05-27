@@ -33,17 +33,17 @@ rule all:
     input:
         # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
         # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
-        # "Liver/qc/rna_to_geno_summary.tsv",
-        # "Liver/qc/all_rats_summary.tsv",
+        # "Brain/qc/rna_to_geno_summary.tsv",
+        # "Brain/qc/all_rats_summary.tsv",
         # expand("NAcc2/rsem_out/{rat_id}.genes.results.gz", rat_id=ids("NAcc2")),
-        # "Liver/Liver.cis_qtl_signif.txt.gz",
-        # "Liver/Liver.cis_qtl_all_pvals.txt.gz",
-        # "Liver/Liver.aFC.txt",
-        # "Liver/Liver.trans_qtl_pairs.txt.gz",
-        expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        expand("{tissue}/{tissue}.aFC.txt", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
+        "Brain/Brain.cis_qtl_signif.txt.gz",
+        "Brain/Brain.cis_qtl_all_pvals.txt.gz",
+        "Brain/Brain.aFC.txt",
+        "Brain/Brain.trans_qtl_pairs.txt.gz",
+        # expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
+        # expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
+        # expand("{tissue}/{tissue}.aFC.txt", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
+        # expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
 
 
 # rule index_vcf:
@@ -162,7 +162,7 @@ rule tensorqtl_independent:
     params:
         geno_prefix = "{tissue}/geno",
     resources:
-        walltime = 12,
+        walltime = 20,
         # partition = "--partition=gpu",
     shell:
         # module load cuda

@@ -16,15 +16,20 @@ rule star_index:
         overhang = read_length - 1
     # threads: 8
     resources:
-        cpus = 8
+        mem_mb = 60000,
+        cpus = 8,
+        walltime = 4
     shell:
         """
+        mkdir -p {params.outdir}
         STAR --runMode genomeGenerate \
-        --genomeDir {params.outdir} \
-        --genomeFastaFiles {input.fasta} \
-        --sjdbGTFfile {input.gtf} \
-        --sjdbOverhang {params.overhang} \
-        --runThreadN {resources.cpus}
+            --outTmpDir {params.outdir}/tmp \
+            --outFileNamePrefix {params.outdir}/STAR_ \
+            --genomeDir {params.outdir} \
+            --genomeFastaFiles {input.fasta} \
+            --sjdbGTFfile {input.gtf} \
+            --sjdbOverhang {params.overhang} \
+            --runThreadN {resources.cpus}
         """
 
 

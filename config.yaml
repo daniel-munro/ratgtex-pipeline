@@ -1,4 +1,5 @@
-read_length: 100
-fastq_path: "../gpfs/fastq"
-paired_end: false
-geno_dataset: "IL_LHb_NAcc_OFC_PL"
+# Edit this or make a config file for your tissue/dataset.
+read_length: 101
+fastq_path: "../bulk/wb/fastq"
+paired_end: true
+geno_dataset: "Brain"

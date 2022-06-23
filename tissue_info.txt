@@ -1,6 +1,7 @@
 tissueSiteDetailId	tissueSiteDetail	tissueSite	colorHex	colorRgb	dataset
 Adipose	Adipose	Adipose	17d2eb	23,210,235	Adipose_Liver
 BLA	Basolateral amygdala	Brain	ffd700	255,215,0	BLA_NAcc2_PL2
+Brain	Brain hemisphere	Brain	75d1c0	117,209,192	Brain
 Eye	Eye	Eye	ff66ff	255,102,255	Eye
 IL	Infralimbic cortex	Brain	377eb8	55,126,184	IL_LHb_NAcc_OFC_PL
 LHb	Lateral habenula	Brain	4daf4a	77,175,74	IL_LHb_NAcc_OFC_PL

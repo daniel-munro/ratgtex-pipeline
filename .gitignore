@@ -2,6 +2,7 @@ src/__pycache__
 src/old
 .snakemake
 .vscode
+.DS_Store
 geno/*
 ref/*
 tools/*

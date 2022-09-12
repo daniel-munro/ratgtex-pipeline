@@ -1,4 +1,3 @@
-import yaml
 from pathlib import Path
 
 
@@ -7,8 +6,7 @@ def ids(tissue):
     with open(f"{tissue}/rat_ids.txt", "r") as f:
         return f.read().splitlines()
 
-
-config = yaml.safe_load(open("config.yaml"))
+configfile: 'config.yaml'
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired_end = bool(config["paired_end"])
@@ -136,10 +134,10 @@ rule tensorqtl_perm:
         geno_prefix = "{tissue}/geno",
     resources:
         walltime = 12,
-        # partition = "--partition=gpu",
+        partition = "--partition=gpu",
     shell:
-        # module load cuda
         """
+        module load cuda
         python3 src/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

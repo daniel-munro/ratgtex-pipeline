@@ -33,7 +33,7 @@ rule exon_table:
     output:
         "ref/Rattus_norvegicus.Rnor_6.0.99.genes.exons.tsv"
     shell:
-        "Rscript src/splice/exon_table.R {input} {output}"
+        "Rscript scripts/splice/exon_table.R {input} {output}"
 
 
 rule splice_bed:
@@ -50,13 +50,13 @@ rule splice_bed:
         groups = "{tissue}/{splice}/{tissue}.leafcutter.phenotype_groups.txt",
     params:
         prefix = "{tissue}",
-        script_dir = "src/splice",
+        script_dir = "scripts/splice",
         tmpdir = "{tissue}/splice/clust",
     shell:
         """
         mkdir -p {params.tmpdir}
         echo {input.junc} | tr ' ' '\n' > {params.tmpdir}/juncfiles.txt
-        python3 src/splice/cluster_prepare_fastqtl.py \
+        python3 scripts/splice/cluster_prepare_fastqtl.py \
             {params.tmpdir}/juncfiles.txt \
             {input.exons} \
             {input.gtf} \
@@ -79,7 +79,7 @@ rule splice_covariates:
         n_geno_pcs = 5,
         n_expr_pcs = 10
     shell:
-        "Rscript src/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
+        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
 
 
 rule tensorqtl_perm_splice:
@@ -100,7 +100,7 @@ rule tensorqtl_perm_splice:
     shell:
         """
         module load cuda
-        python3 src/run_tensorqtl.py \
+        python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \
@@ -129,7 +129,7 @@ rule tensorqtl_independent_splice:
     shell:
         """
         module load cuda
-        python3 src/run_tensorqtl.py \
+        python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \

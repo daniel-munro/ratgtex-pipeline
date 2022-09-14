@@ -90,7 +90,14 @@ rule qc_mixups_compare_rna_to_vcf:
         walltime = 4,
         mem_mb = 16000
     shell:
-        "python3 src/qc_rna_to_geno_similarity.py {input.vcf} {params.count_dir} {input.samples} {output.matrix} {output.summary}"
+        """
+        python3 scripts/qc_rna_to_geno_similarity.py \
+            {input.vcf} \
+            {params.count_dir} \
+            {input.samples} \
+            {output.matrix} \
+            {output.summary}
+        """
 
 
 # rule qc_mixups_test_snps_vcf_all_rats:
@@ -132,4 +139,10 @@ rule qc_mixups_compare_to_all_rats:
         walltime = 4,
         mem_mb = 16000
     shell:
-        "python3 src/qc_rna_to_geno_all_rats.py {input.vcf} {params.count_dir} {input.samples} {output}"
+        """
+        python3 scripts/qc_rna_to_geno_all_rats.py \
+            {input.vcf} \
+            {params.count_dir} \
+            {input.samples} \
+            {output}
+        """

@@ -1,5 +1,5 @@
-src/__pycache__
-src/old
+scripts/__pycache__
+scripts/old
 .snakemake
 .vscode
 .DS_Store

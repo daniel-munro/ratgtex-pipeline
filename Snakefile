@@ -117,7 +117,7 @@ rule covariates:
         n_geno_pcs = 5,
         n_expr_pcs = 20
     shell:
-        "Rscript src/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
+        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
 
 
 rule tensorqtl_perm:
@@ -139,7 +139,7 @@ rule tensorqtl_perm:
     shell:
         """
         module load cuda
-        python3 src/run_tensorqtl.py \
+        python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \
@@ -166,7 +166,7 @@ rule tensorqtl_independent:
     shell:
         # module load cuda
         """
-        python3 src/run_tensorqtl.py \
+        python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \
@@ -246,7 +246,7 @@ rule tensorqtl_all_signif:
     params:
         nom_prefix = "{tissue}/nominal/{tissue}"
     shell:
-        "python3 src/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
+        "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
 
 
 rule tensorqtl_all_cis_pvals:
@@ -258,7 +258,7 @@ rule tensorqtl_all_cis_pvals:
     params:
         nom_dir = "{tissue}/nominal"
     shell:
-        "python3 src/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
+        "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
 
 
 rule aFC:
@@ -280,7 +280,7 @@ rule aFC:
         python3 tools/aFC/aFC.py \
         --vcf {input.vcf} \
         --pheno {input.bed} \
-        --qtl <(python3 src/prepare_qtl_for_afc.py {input.qtl} {input.qtl_indep}) \
+        --qtl <(python3 scripts/prepare_qtl_for_afc.py {input.qtl} {input.qtl_indep}) \
         --cov {input.covar} \
         --log_xform 1 \
         --output {output}

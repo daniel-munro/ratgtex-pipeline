@@ -57,7 +57,7 @@ rule collapse_annotation:
     output:
         "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf"
     shell:
-        "python3 src/collapse_annotation.py {input} {output}"
+        "python3 scripts/collapse_annotation.py {input} {output}"
 
 
 rule assemble_expression:
@@ -78,7 +78,7 @@ rule assemble_expression:
         prefix = "{tissue}/{tissue}.expr"
     shell:
         """
-        python3 src/assemble_expression.py {params.rsem_dir} {input.anno} {params.prefix}
+        python3 scripts/assemble_expression.py {params.rsem_dir} {input.anno} {params.prefix}
         bgzip {params.prefix}.log2.bed
         bgzip {params.prefix}.tpm.bed
         bgzip {params.prefix}.iqn.bed

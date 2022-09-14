@@ -57,6 +57,11 @@ For aFC:
 - statsmodels
 - scikits-bootstrap
 
+For splice QTLs:
+- regtools
+- scikit-learn
+- r-argparser
+
 (There's probably more that I've forgotten.)
 
 ### Other software

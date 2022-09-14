@@ -25,19 +25,19 @@ args <- commandArgs(trailingOnly = TRUE)
 VCF_FILE <- args[1]
 BED_FILE <- args[2]
 N_GENO_PCS <- as.integer(args[3])
-N_EXPR_PCS <- as.integer(args[4])
+N_PHENO_PCS <- as.integer(args[4])
 OUT_FILE <- args[5]
 
-expr <- read.delim(BED_FILE, check.names = FALSE, row.names = "gene_id")[, -(1:3)]
-if (ncol(expr) < 2) stop("Computing covariate PCs requires more than 1 sample.")
-expr_pcs <- get_PCs(expr, N_EXPR_PCS)
-expr_pcs$ID <- paste("expr", expr_pcs$ID, sep = "_")
+pheno <- read.delim(BED_FILE, check.names = FALSE, row.names = 4)[, -(1:3)]
+if (ncol(pheno) < 2) stop("Computing covariate PCs requires more than 1 sample.")
+pheno_pcs <- get_PCs(pheno, N_PHENO_PCS)
+pheno_pcs$ID <- paste("pheno", pheno_pcs$ID, sep = "_")
 
 geno <- load_geno(VCF_FILE)
-geno <- geno[, colnames(expr)]
+geno <- geno[, colnames(pheno)]
 geno_pcs <- get_PCs(geno, N_GENO_PCS)
 geno_pcs$ID <- paste("geno", geno_pcs$ID, sep = "_")
 
-stopifnot(identical(colnames(geno_pcs), colnames(expr_pcs)))
-covars <- rbind(geno_pcs, expr_pcs)
+stopifnot(identical(colnames(geno_pcs), colnames(pheno_pcs)))
+covars <- rbind(geno_pcs, pheno_pcs)
 write.table(covars, OUT_FILE, sep = "\t", quote = FALSE, row.names = FALSE)

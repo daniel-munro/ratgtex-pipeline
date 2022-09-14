@@ -133,6 +133,23 @@ rule star_align:
         """
 
 
+rule index_bam:
+    """Index a BAM file."""
+    input:
+        '{tissue}/star_out/{basename}.bam',
+    output:
+        '{tissue}/star_out/{basename}.bam.bai',
+    params:
+        add_threads = 8 - 1,
+    resources:
+        cpus = 8,
+    shell:
+        # It expects the number of *additional* threads to use beyond the first.
+        """
+        samtools index -@ {params.add_threads} {input}
+        """
+
+
 # WASP-filtering and MarkDuplicates steps were for allele-specific expression,
 # but for now we don't need them for this pipeline.
 

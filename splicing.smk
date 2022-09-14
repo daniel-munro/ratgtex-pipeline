@@ -1,23 +1,6 @@
 localrules:
     exon_table,
-    combine_splice_covariates,
-
-
-# rat_to_sample = {}
-# for tissue in tissues:
-#     rat_to_sample[tissue] = {}
-#     for sample in sample_ids[tissue]:
-#         rat = sample.split('_')[0]
-#         rat_to_sample[tissue][rat] = sample
-# rat_ids = {}
-# for tissue in tissues:
-#     rat_ids[tissue] = list(rat_to_sample[tissue].keys())
-
-
-# def geno_prefix_splice(wildcards):
-#     """Genotypes are expression dataset-specific to remove monomorphic SNPs."""
-#     tissue = dict(IL="IL", LHb="LHB", NAcc="Acbc", OFC="VoLo", PL="PL")[wildcards.tissue]
-#     return f"data/tensorqtl/genotypes/ensembl-gene_inv-quant_{tissue}"
+    splice_covariates,
 
 
 rule regtools_junctions:
@@ -33,7 +16,13 @@ rule regtools_junctions:
     shell:
         """
         mkdir -p {params.junc_dir}
-        regtools junctions extract -a 8 -m 50 -M 500000 -s 0 {input.bam} -o {params.intermediate}
+        regtools junctions extract \
+            -a 8 \
+            -m 50 \
+            -M 500000 \
+            -s 0 \
+            -o {params.intermediate} \
+            {input.bam}
         gzip {params.intermediate}
         """
 
@@ -47,10 +36,10 @@ rule exon_table:
         "Rscript src/splice/exon_table.R {input} {output}"
 
 
-rule splicing_bed:
+rule splice_bed:
     """Note: fails if intermediate files are already present."""
     input:
-        junc = lambda w: expand("{{tissue}}/splice/junc/{rat_id}.junc.gz", rat_id=ids[w.tissue]),
+        junc = lambda w: expand("{{tissue}}/splice/junc/{rat_id}.junc.gz", rat_id=ids(w.tissue)),
         exons = "ref/Rattus_norvegicus.Rnor_6.0.99.genes.exons.tsv",
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf",
     output:
@@ -60,36 +49,30 @@ rule splicing_bed:
         pcs = "{tissue}/{splice}/{tissue}.leafcutter.PCs.txt",
         groups = "{tissue}/{splice}/{tissue}.leafcutter.phenotype_groups.txt",
     params:
-        # file_list = "data/splice/{tissue}/juncfiles.txt",
-        junc_list = lambda w: expand("../junc/{rat_id}.junc.gz", rat_id=rat_ids[w.tissue]),
-        outdir = "{tissue}/splice/clust",
-        path_from_outdir = "../../..",
-    conda:
-        "../envs/splice.yaml"
+        prefix = "{tissue}",
+        script_dir = "src/splice",
+        tmpdir = "{tissue}/splice/clust",
     shell:
-        # paths must be relative to output_dir
-        # echo {input.junc} | tr ' ' '\n' > {params.file_list}
-        # {params.path_from_outdir}/{params.file_list} \
-        # --output_dir data/splice/{wildcards.tissue}
         """
-        mkdir -p {params.outdir}
-        echo {params.junc_list} | tr ' ' '\n' > {params.outdir}/juncfiles.txt
-        cd {params.outdir}
-        python2 {params.path_from_outdir}/src/splice/cluster_prepare_fastqtl.py \
-            juncfiles.txt \
-            {params.path_from_outdir}/{input.exons} \
-            {params.path_from_outdir}/{input.gtf} \
-            {wildcards.tissue} \
-            --leafcutter_dir {params.path_from_outdir}/tools/leafcutter
-        mv -i {wildcards.tissue}.leafcutter* ..
+        mkdir -p {params.tmpdir}
+        echo {input.junc} | tr ' ' '\n' > {params.tmpdir}/juncfiles.txt
+        python3 src/splice/cluster_prepare_fastqtl.py \
+            {params.tmpdir}/juncfiles.txt \
+            {input.exons} \
+            {input.gtf} \
+            {params.prefix} \
+            --leafcutter_dir {params.script_dir} \
+            --output_dir {params.tmpdir}
+        mv -i {params.tmpdir}/{wildcards.tissue}.leafcutter* {params.tmpdir}/..
+        rm -r {params.tmpdir}
         """
 
 
-rule splicing_covariates:
+rule splice_covariates:
     """Compute genotype and splicing PCs and combine."""
     input:
         vcf = "{tissue}/covar/geno.vcf.gz",
-        bed = "{tissue}/{splice}/{tissue}.leafcutter.bed.gz",
+        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
     output:
         "{tissue}/splice/{tissue}.covar_splice.txt"
     params:
@@ -117,7 +100,7 @@ rule tensorqtl_perm_splice:
     shell:
         """
         module load cuda
-        python3 scripts/run_tensorqtl.py \
+        python3 src/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \
@@ -146,7 +129,7 @@ rule tensorqtl_independent_splice:
     shell:
         """
         module load cuda
-        python3 scripts/run_tensorqtl.py \
+        python3 src/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
             {output} \

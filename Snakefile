@@ -22,26 +22,27 @@ localrules:
 include: "align.smk"
 include: "qc.smk"
 include: "expression.smk"
+include: "splicing.smk"
 
-
+# TISSUE = "IL"
+TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL"]
 rule all:
     """List any files here that you want to generate by default
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        # expand("Brain/star_out/{rat_id}.Aligned.sortedByCoord.out.bam", rat_id=ids("Brain")),
-        # expand("Adipose/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids("Adipose")),
-        # "Brain/qc/rna_to_geno_summary.tsv",
-        # "Brain/qc/all_rats_summary.tsv",
-        # expand("NAcc2/rsem_out/{rat_id}.genes.results.gz", rat_id=ids("NAcc2")),
-        "Brain/Brain.cis_qtl_signif.txt.gz",
-        "Brain/Brain.cis_qtl_all_pvals.txt.gz",
-        "Brain/Brain.aFC.txt",
-        "Brain/Brain.trans_qtl_pairs.txt.gz",
-        # expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        # expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        # expand("{tissue}/{tissue}.aFC.txt", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
-        # expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=["IL", "LHb", "NAcc", "OFC", "PL"]),
+        # f"{TISSUE}/qc/rna_to_geno_summary.tsv",
+        # f"{TISSUE}/qc/all_rats_summary.tsv",
+        # f"{TISSUE}/{TISSUE}.cis_qtl_signif.txt.gz",
+        # f"{TISSUE}/{TISSUE}.cis_qtl_all_pvals.txt.gz",
+        # f"{TISSUE}/{TISSUE}.aFC.txt",
+        # f"{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
+        # f"{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz"
+        expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=TISSUES),
+        expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=TISSUES),
+        expand("{tissue}/{tissue}.aFC.txt", tissue=TISSUES),
+        expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=TISSUES),
+        expand("{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", tissue=TISSUES),
 
 
 # rule index_vcf:

@@ -15,7 +15,7 @@ stats = {}
 with open(f"{args.tissue}/rat_ids.txt", "r") as f:
     ids = f.read().splitlines()
 
-config = yaml.safe_load(open("config.yaml"))
+config = yaml.safe_load(open("config.yaml"))[args.tissue]
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired = bool(config["paired_end"])

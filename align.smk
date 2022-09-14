@@ -10,10 +10,10 @@ rule star_index:
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
     output:
         # Among others:
-        f"ref/star_index_{read_length}/SAindex"
+        "ref/star_index_{read_length}/SAindex"
     params:
-        outdir = f"ref/star_index_{read_length}",
-        overhang = read_length - 1
+        outdir = "ref/star_index_{read_length}",
+        overhang = lambda w: int(w.read_length) - 1
     # threads: 8
     resources:
         mem_mb = 60000,
@@ -38,11 +38,11 @@ rule individual_vcf:
     This is used by STAR to consider the individual's variants for better alignment.
     """
     input:
-        f"geno/{geno_dataset}.vcf.gz"
+        "geno/{geno_dataset}.vcf.gz"
     output:
-        f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz"
+        "geno/individual/{geno_dataset}/{rat_id}.vcf.gz"
     params:
-        outdir = f"geno/individual/{geno_dataset}"
+        outdir = "geno/individual/{geno_dataset}"
     shell:
         """
         mkdir -p {params.outdir}
@@ -52,16 +52,17 @@ rule individual_vcf:
 
 def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
     """Get the list of FASTQ file paths for a sample.
-    If paired_end is True, return a list of two lists of corresponding paths.
+    If paired is True, return a list of two lists of corresponding paths.
     """
-    paths = [[], []] if paired_end else []
+    fastq_path = config[tissue]["fastq_path"]
+    paths = [[], []] if paired else []
     with open(f"{tissue}/fastq_map.txt", "r") as f:
         for line in f.read().splitlines():
-            if paired_end:
+            if paired:
                 fastq1, fastq2, r_id = line.split("\t")
                 if r_id == rat_id:
-                    paths[0].append(str(fastq_path / fastq1))
-                    paths[1].append(str(fastq_path / fastq2))
+                    paths[0].append(str(Path(fastq_path) / fastq1))
+                    paths[1].append(str(Path(fastq_path) / fastq2))
             else:
                 fastq, r_id = line.split("\t")
                 if r_id == rat_id:
@@ -71,15 +72,16 @@ def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
 
 def fastq_input(wildcards):
     """Get the FASTQ input file/s for a sample.
-    If paired_end is True, concatenate into one list of files.
+    If paired_end is True for this tissue, concatenate into one list of files.
     """
+    paired_end = config[wildcards.tissue]["paired_end"]
     files = fastqs(wildcards.tissue, wildcards.rat_id, paired_end)
     return files[0] + files[1] if paired_end else files
 
 
 def fastq_param(wildcards, input):
     """Get a string listing the fastq input files, with two lists if paired_end."""
-    if paired_end:
+    if config[wildcards.tissue]["paired_end"]:
         files = fastqs(wildcards.tissue, wildcards.rat_id, True)
         return " ".join([",".join(files[0]), ",".join(files[1])])
     else:
@@ -88,6 +90,7 @@ def fastq_param(wildcards, input):
 
 def read_groups(wildcards, input):
     """Include read group in BAM for MarkDuplicates (though we currently aren't using that)."""
+    paired_end = config[wildcards.tissue]["paired_end"]
     n_fastqs = len(input.fastq) // 2 if paired_end else len(input.fastq)
     rgs = expand("ID:{fq} SM:{sam}", fq=range(n_fastqs), sam=wildcards.rat_id)
     return " , ".join(rgs)
@@ -98,15 +101,15 @@ rule star_align:
     input:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastq_input,
-        vcf = f"geno/individual/{geno_dataset}/{{rat_id}}.vcf.gz",
-        index = f"ref/star_index_{read_length}/SAindex"
+        vcf = lambda w: f"geno/individual/{config[w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
+        index = lambda w: f"ref/star_index_{config[w.tissue]['read_length']}/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.
         coord = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
         bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
         fastq_list = fastq_param,
-        index_dir = f"ref/star_index_{read_length}",
+        index_dir = lambda w: f"ref/star_index_{config[w.tissue]['read_length']}",
         prefix = "{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
     resources:

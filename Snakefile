@@ -7,10 +7,7 @@ def ids(tissue):
         return f.read().splitlines()
 
 configfile: 'config.yaml'
-read_length = config["read_length"]
-fastq_path = Path(config["fastq_path"])
-paired_end = bool(config["paired_end"])
-geno_dataset = config["geno_dataset"]
+# For each tissue, specify: read_length, fastq_path, paired_end, geno_dataset
 
 # These steps are short and will not be submitted as cluster jobs:
 localrules:
@@ -26,6 +23,8 @@ include: "splicing.smk"
 
 # TISSUE = "IL"
 TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL"]
+# TISSUES = ["BLA", "NAcc2", "PL2"]
+# TISSUES = "Eye"
 rule all:
     """List any files here that you want to generate by default
     (i.e. without having to specify on command line when running snakemake).
@@ -58,7 +57,7 @@ rule all:
 rule vcf_to_plink:
     """Get SNPs that are not monomorphic in a given set of samples."""
     input:
-        vcf = f"geno/{geno_dataset}.vcf.gz",
+        vcf = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz",
         samples = "{tissue}/rat_ids.txt"
     output:
         multiext("{tissue}/geno", ".bed", ".bim", ".fam")
@@ -264,8 +263,8 @@ rule tensorqtl_all_cis_pvals:
 rule aFC:
     """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
-        vcf = f"geno/{geno_dataset}.vcf.gz",
-        vcfi = f"geno/{geno_dataset}.vcf.gz.tbi",
+        vcf = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz",
+        vcfi = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz.tbi",
         bed = "{tissue}/{tissue}.expr.log2.bed.gz",
         bedi = "{tissue}/{tissue}.expr.log2.bed.gz.tbi",
         qtl = "{tissue}/{tissue}.cis_qtl.txt.gz",

@@ -14,6 +14,7 @@ The main steps of the pipeline are:
 3. Quantify gene expression using [RSEM](https://deweylab.github.io/RSEM/).
 4. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes.
 5. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
+6. Map cis-sQTLs and trans-sQTLs using [regtools](https://regtools.readthedocs.io/en/latest/), [leafCutter](http://davidaknowles.github.io/leafcutter/), and tensorQTL.
 
 Snakemake automatically links the pipeline together based on input and output files. Here is how all the steps link together:
 
@@ -90,8 +91,10 @@ When you run snakemake, you specify a profile that determines how steps get run.
 ```yaml
 use-conda: true
 cluster: "sbatch -t {resources.walltime}:00:00 --mem={resources.mem_mb} -c {resources.cpus} {resources.partition} --mail-type=FAIL --mail-user=dmunro@scripps.edu"
-default-resources: [walltime=1, mem_mb=4000, cpus=1, partition=""]
-# partition should be e.g. "--partition=gpu"
+default-resources: [walltime=4, mem_mb=4000, cpus=1, partition=""]
+# partition should either be empty string for default or something like "--partition=gpu"
+latency-wait: 60
+cluster-cancel: scancel
 ```
 
 Resources are specified for some of the snakemake rules, which are plugged into this command and automatically submitted as cluster jobs.
@@ -102,7 +105,7 @@ On TSCC, which uses TORQUE scheduling, the jobs run in the default conda environ
 
 I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`, which you can copy or make symbolic links to.
 
-#### `Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}`
+#### `ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}`
 
 Rat genome files.
 
@@ -113,6 +116,28 @@ Gene annotations.
 #### `geno/all_rats_exons.vcf.gz`
 
 This contains the genotypes for exon regions from all 6147 HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes.
+
+#### `config.yaml`
+
+This configuration file contains parameters about the datasets and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
+
+```yaml
+# Test dataset
+Test:
+  read_length: 100
+  fastq_path: "Test/fastq"
+  paired_end: false
+
+# IL, LHb, NAcc, OFC, and PL datsets
+IL:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+...
+```
+
+Some of these are inherent to the data, while others, e.g. `fastq_path`, may need to be edited to point to the correct location.
 
 ### Dataset-specific input files
 
@@ -133,17 +158,17 @@ A file listing the rat IDs for the dataset, one per line. This list determines w
 
 #### `geno/{dataset}.vcf.gz`
 
-A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `src/genotypes.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/genotypes.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
 
 ## Running
 
-Create or edit config.yaml in this directory. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissue/dataset such as read length and directory where FASTQ files can be found. I recommend having a config file for each tissue or project-of-origin, e.g. `Eye.yaml`, and copy the one you want to use to `config.yaml`.
+Edit `config.yaml` in this directory so that the tissue(s) you want to process are present and have correct parameters. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissues/datasets such as read length and directory where FASTQ files can be found.
 
 ### QC
 
 #### Pre-run checks
 
-Before running Snakemake, run `python3 src/qc_init_check.py {tissuename}`, which checks the input data and config for issues.
+Before running Snakemake, run `python3 scripts/qc_init_check.py {tissuename}`, which checks the input data and config for issues.
 
 #### Sample mixup checks
 

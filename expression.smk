@@ -27,7 +27,7 @@ rule rsem:
     params:
         ref_prefix = "ref/rsem_reference/rsem_reference",
         out_prefix = "{tissue}/rsem_out/{rat_id}",
-        paired_end_flag = "--paired-end" if paired_end else "",
+        paired_end_flag = lambda w: "--paired-end" if config[w.tissue]["paired_end"] else "",
     resources:
         cpus = 16,
         walltime = 8

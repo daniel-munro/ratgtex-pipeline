@@ -1,5 +1,79 @@
-# Edit this or make a config file for your tissue/dataset.
-read_length: 101
-fastq_path: "../bulk/wb/fastq"
-paired_end: true
-geno_dataset: "Brain"
+# Test dataset
+Test:
+  read_length: 100
+  fastq_path: "Test/fastq"
+  paired_end: false
+
+# IL, LHb, NAcc, OFC, and PL datsets
+IL:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+LHb:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+NAcc:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+OFC:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+PL:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+
+# Eye dataset
+Eye:
+  read_length: 150
+  fastq_path: "../bulk/eye/fastq"
+  paired_end: true
+  geno_dataset: "Eye"
+
+# BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
+# Note: half of NAcc2 samples are single-end. Run STAR and RSEM for single-end and
+# paired-end separately using different fastq_map.txt and rat_ids.txt files.
+# Then continue with combined rat_ids.txt and fastq_map.txt files. When running single-end, change
+# paired_end to false below.
+BLA:
+  read_length: 100
+  fastq_path: "../bulk/sm/fastq"
+  paired_end: true
+  geno_dataset: "BLA_NAcc2_PL2"
+NAcc2:
+  read_length: 100
+  fastq_path: "../bulk/sm/fastq"
+  paired_end: true
+  geno_dataset: "BLA_NAcc2_PL2"
+PL2:
+  read_length: 100
+  fastq_path: "../bulk/sm/fastq"
+  paired_end: true
+  geno_dataset: "BLA_NAcc2_PL2"
+
+# Adipose and Liver dataset
+Adipose:
+  read_length: 76
+  fastq_path: "../bulk/fl/Raw_RNA/Fat"
+  paired_end: false
+  geno_dataset: "Adipose_Liver"
+Liver:
+  read_length: 126
+  fastq_path: "../bulk/fl/Raw_RNA/Liver"
+  paired_end: true
+  geno_dataset: "Adipose_Liver"
+
+# Whole brain hemisphere dataset
+Brain:
+  read_length: 101
+  fastq_path: "../bulk/wb/fastq"
+  paired_end: true
+  geno_dataset: "Brain"

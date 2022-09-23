@@ -138,3 +138,83 @@ rule tensorqtl_independent_splice:
             --groups {input.groups} \
             --mode cis_independent
         """
+
+
+rule tensorqtl_trans_splice:
+    """Map trans-sQTLs (without significance testing)."""
+    input:
+        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        covar = "{tissue}/splice/{tissue}.covar_splice.txt",
+    output:
+        "{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz"
+    params:
+        geno_prefix = "{tissue}/geno",
+        outdir = "{tissue}/splice",
+        out_prefix = "{tissue}_splice",
+    resources:
+        walltime = 12,
+        # partition = "--partition=gpu",
+    shell:
+        # batch_size set due to "RuntimeError: CUDA out of memory"
+        # tensorQTL doesn't use group info for trans mapping
+        # module load cuda
+        """
+        python3 -m tensorqtl \
+            {params.geno_prefix} \
+            {input.bed} \
+            {params.out_prefix} \
+            --covariates {input.covar} \
+            --output_dir {params.outdir} \
+            --output_text \
+            --batch_size 10000 \
+            --mode trans
+        """
+
+
+## This gives an error since the groups files are out of order, so I'll omit for now.
+# rule tensorqtl_nominal_splice:
+#     """Get summary statistics for all tested cis-window SNPs per gene."""
+#     input:
+#         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
+#         bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
+#         bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+#         covar = "{tissue}/splice/{tissue}.covar_splice.txt",
+#         groups = "{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
+#     output:
+#         expand("{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+#     params:
+#         geno_prefix = "{tissue}/geno",
+#         outdir = "{tissue}/splice/nominal",
+#         out_prefix = "{tissue}_splice",
+#     resources:
+#         walltime = 12,
+#         # partition = "--partition=gpu",
+#     shell:
+#         # module load cuda
+#         """
+#         mkdir -p {params.outdir}
+#         python3 -m tensorqtl \
+#             {params.geno_prefix} \
+#             {input.bed} \
+#             {params.out_prefix} \
+#             --covariates {input.covar} \
+#             --phenotype_groups {input.groups} \
+#             --output_dir {params.outdir} \
+#             --mode cis_nominal
+#         """
+
+
+# rule tensorqtl_all_signif_splice:
+#     """Extract all significant cis SNP-gene pairs."""
+#     input:
+#         perm = "{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
+#         nom = expand("{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21)),
+#     output:
+#         "{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz"
+#     params:
+#         nom_prefix = "{tissue}/splice/nominal/{tissue}_splice",
+#     shell:
+#         "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
+

@@ -5,15 +5,14 @@ rule rsem_index:
         gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
     output:
         "ref/rsem_reference/rsem_reference.transcripts.fa"
-    resources:
-        cpus = 16
+    threads: 16
     shell:
         """
         rsem-prepare-reference \
-        {input.fasta} \
-        ref/rsem_reference/rsem_reference \
-        --gtf {input.gtf} \
-        --num-threads {resources.cpus}
+            {input.fasta} \
+            ref/rsem_reference/rsem_reference \
+            --gtf {input.gtf} \
+            --num-threads {threads}
         """
 
 
@@ -28,20 +27,20 @@ rule rsem:
         ref_prefix = "ref/rsem_reference/rsem_reference",
         out_prefix = "{tissue}/rsem_out/{rat_id}",
         paired_end_flag = lambda w: "--paired-end" if config[w.tissue]["paired_end"] else "",
+    threads: 16
     resources:
-        cpus = 16,
         walltime = 8
     shell:
         """
         rsem-calculate-expression \
-        {params.paired_end_flag} \
-        --num-threads {resources.cpus} \
-        --quiet \
-        --estimate-rspd \
-        --no-bam-output \
-        --alignments {input.bam} \
-        {params.ref_prefix} \
-        {params.out_prefix}
+            {params.paired_end_flag} \
+            --num-threads {threads} \
+            --quiet \
+            --estimate-rspd \
+            --no-bam-output \
+            --alignments {input.bam} \
+            {params.ref_prefix} \
+            {params.out_prefix}
         gzip {params.out_prefix}.genes.results
         rm {params.out_prefix}.isoforms.results
         rm -r {params.out_prefix}.stat

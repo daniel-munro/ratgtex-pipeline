@@ -22,9 +22,11 @@ include: "expression.smk"
 include: "splicing.smk"
 
 # TISSUE = "IL"
-TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL"]
+# TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL"]
 # TISSUES = ["BLA", "NAcc2", "PL2"]
-# TISSUES = "Eye"
+# TISSUES = "Brain"
+# TISSUES = ["Adipose", "Liver"]
+TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
 rule all:
     """List any files here that you want to generate by default
     (i.e. without having to specify on command line when running snakemake).
@@ -42,16 +44,7 @@ rule all:
         expand("{tissue}/{tissue}.aFC.txt", tissue=TISSUES),
         expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=TISSUES),
         expand("{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", tissue=TISSUES),
-
-
-# rule index_vcf:
-#     """Generate an index file for a VCF file."""
-#     input:
-#         "{base}.vcf.gz"
-#     output:
-#         "{base}.vcf.gz.tbi"
-#     shell:
-#         "tabix -p vcf {input}"
+        expand("{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", tissue=TISSUES),
 
 
 rule vcf_to_plink:
@@ -66,12 +59,12 @@ rule vcf_to_plink:
     shell:
         """
         plink2 --make-bed \
-        --vcf {input.vcf} \
-        --keep {input.samples} \
-        --maf 0.01 \
-        --mac 2 \
-        --max-alleles 2 \
-        --out {params.prefix}
+            --vcf {input.vcf} \
+            --keep {input.samples} \
+            --maf 0.01 \
+            --mac 2 \
+            --max-alleles 2 \
+            --out {params.prefix}
         """
 
 
@@ -186,7 +179,8 @@ rule tensorqtl_nominal:
         expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
     params:
         geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}/nominal"
+        outdir = "{tissue}/nominal",
+        out_prefix = "{tissue}",
     resources:
         walltime = 12,
         # partition = "--partition=gpu",
@@ -197,7 +191,7 @@ rule tensorqtl_nominal:
         python3 -m tensorqtl \
             {params.geno_prefix} \
             {input.bed} \
-            {wildcards.tissue} \
+            {params.out_prefix} \
             --covariates {input.covar} \
             --output_dir {params.outdir} \
             --mode cis_nominal
@@ -205,7 +199,7 @@ rule tensorqtl_nominal:
 
 
 rule tensorqtl_trans:
-    """Map trans-eQTLs."""
+    """Map trans-eQTLs (without significance testing)."""
     input:
         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
@@ -215,7 +209,8 @@ rule tensorqtl_trans:
         "{tissue}/{tissue}.trans_qtl_pairs.txt.gz"
     params:
         geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}"
+        outdir = "{tissue}",
+        out_prefix = "{tissue}",
     resources:
         walltime = 12,
         # partition = "--partition=gpu",
@@ -226,7 +221,7 @@ rule tensorqtl_trans:
         python3 -m tensorqtl \
             {params.geno_prefix} \
             {input.bed} \
-            {wildcards.tissue} \
+            {params.out_prefix} \
             --covariates {input.covar} \
             --output_dir {params.outdir} \
             --output_text \
@@ -277,11 +272,22 @@ rule aFC:
     shell:
         """
         python3 tools/aFC/aFC.py \
-        --vcf {input.vcf} \
-        --pheno {input.bed} \
-        --qtl <(python3 scripts/prepare_qtl_for_afc.py {input.qtl} {input.qtl_indep}) \
-        --cov {input.covar} \
-        --log_xform 1 \
-        --output {output}
+            --vcf {input.vcf} \
+            --pheno {input.bed} \
+            --qtl <(python3 scripts/prepare_qtl_for_afc.py {input.qtl} {input.qtl_indep}) \
+            --cov {input.covar} \
+            --log_xform 1 \
+            --output {output}
         """
+
+
+# rule index_vcf:
+#     """Generate an index file for a VCF file."""
+#     input:
+#         "{base}.vcf.gz"
+#     output:
+#         "{base}.vcf.gz.tbi"
+#     shell:
+#         "tabix -p vcf {input}"
+
 

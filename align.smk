@@ -14,10 +14,9 @@ rule star_index:
     params:
         outdir = "ref/star_index_{read_length}",
         overhang = lambda w: int(w.read_length) - 1
-    # threads: 8
+    threads: 8
     resources:
         mem_mb = 60000,
-        cpus = 8,
         walltime = 4
     shell:
         """
@@ -29,7 +28,7 @@ rule star_index:
             --genomeFastaFiles {input.fasta} \
             --sjdbGTFfile {input.gtf} \
             --sjdbOverhang {params.overhang} \
-            --runThreadN {resources.cpus}
+            --runThreadN {threads}
         """
 
 
@@ -54,15 +53,15 @@ def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
     """Get the list of FASTQ file paths for a sample.
     If paired is True, return a list of two lists of corresponding paths.
     """
-    fastq_path = config[tissue]["fastq_path"]
+    fastq_path = Path(config[tissue]["fastq_path"])
     paths = [[], []] if paired else []
     with open(f"{tissue}/fastq_map.txt", "r") as f:
         for line in f.read().splitlines():
             if paired:
                 fastq1, fastq2, r_id = line.split("\t")
                 if r_id == rat_id:
-                    paths[0].append(str(Path(fastq_path) / fastq1))
-                    paths[1].append(str(Path(fastq_path) / fastq2))
+                    paths[0].append(str(fastq_path / fastq1))
+                    paths[1].append(str(fastq_path / fastq2))
             else:
                 fastq, r_id = line.split("\t")
                 if r_id == rat_id:
@@ -112,15 +111,15 @@ rule star_align:
         index_dir = lambda w: f"ref/star_index_{config[w.tissue]['read_length']}",
         prefix = "{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
+    threads: 16
     resources:
         mem_mb = 60000,
-        cpus = 16,
         walltime = 20
     shell:
         """
         mkdir -p {wildcards.tissue}/star_out
         STAR --runMode alignReads \
-            --runThreadN {resources.cpus} \
+            --runThreadN {threads} \
             --genomeDir {params.index_dir} \
             --readFilesIn {params.fastq_list} \
             --readFilesCommand zcat \
@@ -144,8 +143,7 @@ rule index_bam:
         '{tissue}/star_out/{basename}.bam.bai',
     params:
         add_threads = 8 - 1,
-    resources:
-        cpus = 8,
+    threads: 8
     shell:
         # It expects the number of *additional* threads to use beyond the first.
         """

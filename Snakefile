@@ -39,6 +39,7 @@ rule all:
         # f"{TISSUE}/{TISSUE}.aFC.txt",
         # f"{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
         # f"{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz"
+        expand("{tissue}/qc/{tissue}.sex_concordance.txt", tissue=TISSUES),
         expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=TISSUES),
         expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=TISSUES),
         expand("{tissue}/{tissue}.aFC.txt", tissue=TISSUES),

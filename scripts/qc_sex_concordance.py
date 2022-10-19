@@ -12,7 +12,7 @@ parser.add_argument("out", type=str, help="Output file for report summarizing se
 args = parser.parse_args()
 
 # Cutoff for total chrY gene TPM, empirically found to predict female/male
-TPM_CUTOFF = 66
+TPM_CUTOFF = 50
 
 expr = pd.read_csv(args.expr, sep="\t", dtype={"#chr": str})
 expr = expr.loc[expr["#chr"] == "Y"]
@@ -38,5 +38,7 @@ if len(expr.index) > 0:
     mismatches = expr.loc[expr["pred"] != expr["label"]]
     if len(mismatches.index) > 0:
         out.write(f"Samples with mismatch (chrY total TPM cutoff = {TPM_CUTOFF}):\n")
-        out.write(mismatches.to_string())
+        out.write(mismatches.to_string() + "\n")
+    out.write("\nAll results:\n")
+    out.write(expr.to_string() + "\n")
 out.close()

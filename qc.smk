@@ -2,6 +2,7 @@ localrules:
     qc_mixups_exon_regions,
     qc_mixups_test_snps_vcf,
     # qc_mixups_compare_rna_to_vcf,
+    qc_sex_concordance,
 
 
 rule qc_mixups_exon_regions:
@@ -146,3 +147,13 @@ rule qc_mixups_compare_to_all_rats:
             {input.samples} \
             {output}
         """
+
+rule qc_sex_concordance:
+    """Compare sex predicted from chrY gene expression to metadata labels."""
+    input:
+        expr = "{tissue}/{tissue}.expr.tpm.bed.gz",
+        meta = "geno/genotyping_log.csv",
+    output:
+        "{tissue}/qc/{tissue}.sex_concordance.txt",
+    shell:
+        "python3 scripts/qc_sex_concordance.py {input.expr} {input.meta} {output}"

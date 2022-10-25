@@ -12,11 +12,14 @@ parser.add_argument("out", type=str, help="Output file for report summarizing se
 args = parser.parse_args()
 
 # Cutoff for total chrY gene TPM, empirically found to predict female/male
-TPM_CUTOFF = 50
+TPM_CUTOFF = 18
+# Cap individual TPM values before summing to control for outliers
+MAX_TPM = 5
 
 expr = pd.read_csv(args.expr, sep="\t", dtype={"#chr": str})
 expr = expr.loc[expr["#chr"] == "Y"]
 expr = expr.drop(columns=["#chr", "start", "end", "gene_id"])
+expr = expr.clip(upper=MAX_TPM)
 expr = expr.sum(axis=0) # Sum TPM for chrY genes per sample
 # Convert to DataFrame with sample names as index
 expr = pd.DataFrame(expr, columns=["TPM"])

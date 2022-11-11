@@ -6,13 +6,13 @@ localrules:
 rule regtools_junctions:
     """Much faster than LeafCutter's version, so even they now recommend using regtools."""
     input:
-        bam = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
-        bai = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam.bai"
+        bam = "{rn}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
+        bai = "{rn}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam.bai"
     output:
-        "{tissue}/splice/junc/{rat_id}.junc.gz"
+        "{rn}/{tissue}/splice/junc/{rat_id}.junc.gz"
     params:
-        junc_dir = "{tissue}/splice/junc",
-        intermediate = "{tissue}/splice/junc/{rat_id}.junc"
+        junc_dir = "{rn}/{tissue}/splice/junc",
+        intermediate = "{rn}/{tissue}/splice/junc/{rat_id}.junc"
     shell:
         """
         mkdir -p {params.junc_dir}
@@ -29,9 +29,9 @@ rule regtools_junctions:
 
 rule exon_table:
     input:
-        "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf"
+        f"{ANNO_PREFIX}.genes.gtf"
     output:
-        "ref/Rattus_norvegicus.Rnor_6.0.99.genes.exons.tsv"
+        f"{ANNO_PREFIX}.genes.exons.tsv"
     shell:
         "Rscript scripts/splice/exon_table.R {input} {output}"
 
@@ -39,19 +39,19 @@ rule exon_table:
 rule splice_bed:
     """Note: fails if intermediate files are already present."""
     input:
-        junc = lambda w: expand("{{tissue}}/splice/junc/{rat_id}.junc.gz", rat_id=ids(w.tissue)),
-        exons = "ref/Rattus_norvegicus.Rnor_6.0.99.genes.exons.tsv",
-        gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.genes.gtf",
+        junc = lambda w: expand("{{rn}}/{{tissue}}/splice/junc/{rat_id}.junc.gz", rat_id=ids(w.tissue)),
+        exons = F"{ANNO_PREFIX}.genes.exons.tsv",
+        gtf = F"{ANNO_PREFIX}.genes.gtf",
     output:
-        bed = "{tissue}/{splice}/{tissue}.leafcutter.bed.gz",
-        bedi = "{tissue}/{splice}/{tissue}.leafcutter.bed.gz.tbi",
-        clust = "{tissue}/{splice}/{tissue}.leafcutter.clusters_to_genes.txt",
-        pcs = "{tissue}/{splice}/{tissue}.leafcutter.PCs.txt",
-        groups = "{tissue}/{splice}/{tissue}.leafcutter.phenotype_groups.txt",
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        clust = "{rn}/{tissue}/splice/{tissue}.leafcutter.clusters_to_genes.txt",
+        pcs = "{rn}/{tissue}/splice/{tissue}.leafcutter.PCs.txt",
+        groups = "{rn}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
     params:
         prefix = "{tissue}",
         script_dir = "scripts/splice",
-        tmpdir = "{tissue}/splice/clust",
+        tmpdir = "{rn}/{tissue}/splice/clust",
     shell:
         """
         mkdir -p {params.tmpdir}
@@ -71,10 +71,10 @@ rule splice_bed:
 rule splice_covariates:
     """Compute genotype and splicing PCs and combine."""
     input:
-        vcf = "{tissue}/covar/geno.vcf.gz",
-        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        vcf = "{rn}/{tissue}/covar/geno.vcf.gz",
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
     output:
-        "{tissue}/splice/{tissue}.covar_splice.txt"
+        "{rn}/{tissue}/splice/{tissue}.covar_splice.txt"
     params:
         n_geno_pcs = 5,
         n_expr_pcs = 10
@@ -84,16 +84,16 @@ rule splice_covariates:
 
 rule tensorqtl_perm_splice:
     input:
-        geno = lambda w: multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
-        bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
-        covar = "{tissue}/splice/{tissue}.covar_splice.txt",
-        groups = "{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
+        geno = lambda w: multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        covar = "{rn}/{tissue}/splice/{tissue}.covar_splice.txt",
+        groups = "{rn}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
     output:
-        "{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz"
+        "{rn}/{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}/splice"
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}/splice"
     resources:
         walltime = 12,
         partition = "--partition=gpu",
@@ -112,17 +112,17 @@ rule tensorqtl_perm_splice:
 
 rule tensorqtl_independent_splice:
     input:
-        geno = lambda w: multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
-        bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
-        covar = "{tissue}/splice/{tissue}.covar_splice.txt",
-        groups = "{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
-        cis = "{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
+        geno = lambda w: multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        covar = "{rn}/{tissue}/splice/{tissue}.covar_splice.txt",
+        groups = "{rn}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
+        cis = "{rn}/{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
     output:
-        "{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz"
+        "{rn}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}/splice"
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}/splice"
     resources:
         walltime = 12,
         partition = "--partition=gpu",
@@ -143,15 +143,15 @@ rule tensorqtl_independent_splice:
 rule tensorqtl_trans_splice:
     """Map trans-sQTLs (without significance testing)."""
     input:
-        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
-        bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
-        covar = "{tissue}/splice/{tissue}.covar_splice.txt",
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        covar = "{rn}/{tissue}/splice/{tissue}.covar_splice.txt",
     output:
-        "{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz"
+        "{rn}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}/splice",
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}/splice",
         out_prefix = "{tissue}_splice",
     resources:
         walltime = 12,

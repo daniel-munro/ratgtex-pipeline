@@ -6,13 +6,13 @@ rule star_index:
     A different index is generated for each read length.
     """
     input:
-        fasta = "ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa",
-        gtf = "ref/Rattus_norvegicus.Rnor_6.0.99.gtf"
+        fasta = f"{GENOME_PREFIX}.fa",
+        gtf = f"{ANNO_PREFIX}.gtf",
     output:
         # Among others:
-        "ref/star_index_{read_length}/SAindex"
+        "ref_{rn}/star_index_{read_length}/SAindex"
     params:
-        outdir = "ref/star_index_{read_length}",
+        outdir = "ref_{rn}/star_index_{read_length}",
         overhang = lambda w: int(w.read_length) - 1
     threads: 8
     resources:
@@ -37,11 +37,11 @@ rule individual_vcf:
     This is used by STAR to consider the individual's variants for better alignment.
     """
     input:
-        "geno/{geno_dataset}.vcf.gz"
+        "geno_{rn}/{geno_dataset}.vcf.gz"
     output:
-        "geno/individual/{geno_dataset}/{rat_id}.vcf.gz"
+        "geno_{rn}/individual/{geno_dataset}/{rat_id}.vcf.gz"
     params:
-        outdir = "geno/individual/{geno_dataset}"
+        outdir = "geno_{rn}/individual/{geno_dataset}"
     shell:
         """
         mkdir -p {params.outdir}
@@ -55,7 +55,7 @@ def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
     """
     fastq_path = Path(config[tissue]["fastq_path"])
     paths = [[], []] if paired else []
-    with open(f"{tissue}/fastq_map.txt", "r") as f:
+    with open(f"{RN}/{tissue}/fastq_map.txt", "r") as f:
         for line in f.read().splitlines():
             if paired:
                 fastq1, fastq2, r_id = line.split("\t")
@@ -100,16 +100,16 @@ rule star_align:
     input:
         # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastq_input,
-        vcf = lambda w: f"geno/individual/{config[w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
-        index = lambda w: f"ref/star_index_{config[w.tissue]['read_length']}/SAindex"
+        vcf = lambda w: f"geno_{RN}/individual/{config[w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
+        index = lambda w: f"ref_{RN}/star_index_{config[w.tissue]['read_length']}/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.
-        coord = "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
-        bam = "{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
+        coord = "{rn}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
+        bam = "{rn}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
         fastq_list = fastq_param,
-        index_dir = lambda w: f"ref/star_index_{config[w.tissue]['read_length']}",
-        prefix = "{tissue}/star_out/{rat_id}.",
+        index_dir = lambda w: f"ref_{RN}/star_index_{config[w.tissue]['read_length']}",
+        prefix = "{rn}/{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
     threads: 16
     resources:
@@ -117,7 +117,7 @@ rule star_align:
         walltime = 20
     shell:
         """
-        mkdir -p {wildcards.tissue}/star_out
+        mkdir -p {wildcards.rn}/{wildcards.tissue}/star_out
         STAR --runMode alignReads \
             --runThreadN {threads} \
             --genomeDir {params.index_dir} \
@@ -138,9 +138,9 @@ rule star_align:
 rule index_bam:
     """Index a BAM file."""
     input:
-        '{tissue}/star_out/{basename}.bam',
+        "{rn}/{tissue}/star_out/{basename}.bam",
     output:
-        '{tissue}/star_out/{basename}.bam.bai',
+        "{rn}/{tissue}/star_out/{basename}.bam.bai",
     params:
         add_threads = 8 - 1,
     threads: 8

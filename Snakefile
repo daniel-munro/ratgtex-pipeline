@@ -3,8 +3,17 @@ from pathlib import Path
 
 def ids(tissue):
     """Load list of rat IDs for a tissue dataset."""
-    with open(f"{tissue}/rat_ids.txt", "r") as f:
+    with open(f"{RN}/{tissue}/rat_ids.txt", "r") as f:
         return f.read().splitlines()
+
+
+RN = "rn7"
+if RN == "rn6":
+    GENOME_PREFIX = "ref_rn6/Rattus_norvegicus.Rnor_6.0.dna.toplevel"
+    ANNO_PREFIX = "ref_rn6/Rattus_norvegicus.Rnor_6.0.99"
+elif RN == "rn7":
+    GENOME_PREFIX = "ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel"
+    ANNO_PREFIX = "ref_rn7/Rattus_norvegicus.mRatBN7.2.108"
 
 configfile: 'config.yaml'
 # For each tissue, specify: read_length, fastq_path, paired_end, geno_dataset
@@ -24,7 +33,7 @@ include: "splicing.smk"
 # TISSUE = "IL"
 # TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL"]
 # TISSUES = ["BLA", "NAcc2", "PL2"]
-# TISSUES = "Brain"
+# TISSUES = ["Brain"]
 # TISSUES = ["Adipose", "Liver"]
 TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
 rule all:
@@ -32,31 +41,32 @@ rule all:
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        # f"{TISSUE}/qc/rna_to_geno_summary.tsv",
-        # f"{TISSUE}/qc/all_rats_summary.tsv",
-        # f"{TISSUE}/{TISSUE}.cis_qtl_signif.txt.gz",
-        # f"{TISSUE}/{TISSUE}.cis_qtl_all_pvals.txt.gz",
-        # f"{TISSUE}/{TISSUE}.aFC.txt",
-        # f"{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
-        # f"{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz"
-        expand("{tissue}/qc/{tissue}.sex_concordance.txt", tissue=TISSUES),
-        expand("{tissue}/{tissue}.cis_qtl_signif.txt.gz", tissue=TISSUES),
-        expand("{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", tissue=TISSUES),
-        expand("{tissue}/{tissue}.aFC.txt", tissue=TISSUES),
-        expand("{tissue}/{tissue}.trans_qtl_pairs.txt.gz", tissue=TISSUES),
-        expand("{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", tissue=TISSUES),
-        expand("{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", tissue=TISSUES),
+        # f"{RN}/{TISSUE}/qc/rna_to_geno_summary.tsv",
+        # f"{RN}/{TISSUE}/qc/all_rats_summary.tsv",
+        # f"{RN}/{TISSUE}/{TISSUE}.cis_qtl_signif.txt.gz",
+        # f"{RN}/{TISSUE}/{TISSUE}.cis_qtl_all_pvals.txt.gz",
+        # f"{RN}/{TISSUE}/{TISSUE}.aFC.txt",
+        # f"{RN}/{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
+        # f"{RN}/{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz"
+        expand("{rn}/{tissue}/{tissue}.expr.tpm.bed.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.aFC.txt", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
 
 
 rule vcf_to_plink:
     """Get SNPs that are not monomorphic in a given set of samples."""
     input:
-        vcf = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz",
-        samples = "{tissue}/rat_ids.txt"
+        vcf = lambda w: f"geno_{RN}/{config[w.tissue]['geno_dataset']}.vcf.gz",
+        samples = "{rn}/{tissue}/rat_ids.txt"
     output:
-        multiext("{tissue}/geno", ".bed", ".bim", ".fam")
+        multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam")
     params:
-        prefix = "{tissue}/geno"
+        prefix = "{rn}/{tissue}/geno"
     shell:
         """
         plink2 --make-bed \
@@ -74,13 +84,13 @@ rule prune_for_covar:
     --indep-pairwise parameters are based on GTEx methods.
     """
     input:
-        multiext("{tissue}/geno", ".bed", ".bim", ".fam")
+        multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam")
     output:
-        "{tissue}/covar/geno.vcf.gz"
+        "{rn}/{tissue}/covar/geno.vcf.gz"
     params:
-        prefix = "{tissue}/geno",
-        pruned_dir = "{tissue}/covar",
-        pruned_prefix = "{tissue}/covar/geno"
+        prefix = "{rn}/{tissue}/geno",
+        pruned_dir = "{rn}/{tissue}/covar",
+        pruned_prefix = "{rn}/{tissue}/covar/geno"
     shell:
         # --geno 0.05 filters variants with >5% missing values (the rest will be imputed)
         """
@@ -102,10 +112,10 @@ rule prune_for_covar:
 rule covariates:
     """Compute genotype and expression PCs and combine."""
     input:
-        vcf = "{tissue}/covar/geno.vcf.gz",
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+        vcf = "{rn}/{tissue}/covar/geno.vcf.gz",
+        bed = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
     output:
-        "{tissue}/covar.txt"
+        "{rn}/{tissue}/covar.txt"
     params:
         n_geno_pcs = 5,
         n_expr_pcs = 20
@@ -118,14 +128,14 @@ rule tensorqtl_perm:
     Outputs the top association per gene.
     """
     input:
-        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{tissue}/covar.txt"
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+        bedi = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
+        covar = "{rn}/{tissue}/covar.txt"
     output:
-        "{tissue}/{tissue}.cis_qtl.txt.gz"
+        "{rn}/{tissue}/{tissue}.cis_qtl.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
+        geno_prefix = "{rn}/{tissue}/geno",
     resources:
         walltime = 12,
         partition = "--partition=gpu",
@@ -144,15 +154,15 @@ rule tensorqtl_perm:
 rule tensorqtl_independent:
     """Use stepwise regression to identify multiple conditionally independent cis-eQTLs per gene."""
     input:
-        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{tissue}/covar.txt",
-        cis = "{tissue}/{tissue}.cis_qtl.txt.gz"
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+        bedi = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
+        covar = "{rn}/{tissue}/covar.txt",
+        cis = "{rn}/{tissue}/{tissue}.cis_qtl.txt.gz"
     output:
-        "{tissue}/{tissue}.cis_independent_qtl.txt.gz"
+        "{rn}/{tissue}/{tissue}.cis_independent_qtl.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
+        geno_prefix = "{rn}/{tissue}/geno",
     resources:
         walltime = 20,
         # partition = "--partition=gpu",
@@ -172,15 +182,15 @@ rule tensorqtl_independent:
 rule tensorqtl_nominal:
     """Get summary statistics for all tested cis-window SNPs per gene."""
     input:
-        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{tissue}/covar.txt"
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+        bedi = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
+        covar = "{rn}/{tissue}/covar.txt"
     output:
-        expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        expand("{{rn}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
     params:
-        geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}/nominal",
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}/nominal",
         out_prefix = "{tissue}",
     resources:
         walltime = 12,
@@ -202,15 +212,15 @@ rule tensorqtl_nominal:
 rule tensorqtl_trans:
     """Map trans-eQTLs (without significance testing)."""
     input:
-        geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{tissue}/covar.txt"
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
+        bedi = "{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
+        covar = "{rn}/{tissue}/covar.txt"
     output:
-        "{tissue}/{tissue}.trans_qtl_pairs.txt.gz"
+        "{rn}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz"
     params:
-        geno_prefix = "{tissue}/geno",
-        outdir = "{tissue}",
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}",
         out_prefix = "{tissue}",
     resources:
         walltime = 12,
@@ -234,12 +244,12 @@ rule tensorqtl_trans:
 rule tensorqtl_all_signif:
     """Extract all significant cis SNP-gene pairs."""
     input:
-        perm = "{tissue}/{tissue}.cis_qtl.txt.gz",
-        nom = expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        perm = "{rn}/{tissue}/{tissue}.cis_qtl.txt.gz",
+        nom = expand("{{rn}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
     output:
-        "{tissue}/{tissue}.cis_qtl_signif.txt.gz"
+        "{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz"
     params:
-        nom_prefix = "{tissue}/nominal/{tissue}"
+        nom_prefix = "{rn}/{tissue}/nominal/{tissue}"
     shell:
         "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
 
@@ -247,11 +257,11 @@ rule tensorqtl_all_signif:
 rule tensorqtl_all_cis_pvals:
     """Extract p-values for all tested cis-window SNPs per gene."""
     input:
-        expand("{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        expand("{{rn}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
     output:
-        "{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz"
+        "{rn}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz"
     params:
-        nom_dir = "{tissue}/nominal"
+        nom_dir = "{rn}/{tissue}/nominal"
     shell:
         "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
 
@@ -259,15 +269,15 @@ rule tensorqtl_all_cis_pvals:
 rule aFC:
     """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
-        vcf = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz",
-        vcfi = lambda w: f"geno/{config[w.tissue]['geno_dataset']}.vcf.gz.tbi",
-        bed = "{tissue}/{tissue}.expr.log2.bed.gz",
-        bedi = "{tissue}/{tissue}.expr.log2.bed.gz.tbi",
-        qtl = "{tissue}/{tissue}.cis_qtl.txt.gz",
-        qtl_indep = "{tissue}/{tissue}.cis_independent_qtl.txt.gz",
-        covar = "{tissue}/covar.txt"
+        vcf = lambda w: f"geno_{RN}/{config[w.tissue]['geno_dataset']}.vcf.gz",
+        vcfi = lambda w: f"geno_{RN}/{config[w.tissue]['geno_dataset']}.vcf.gz.tbi",
+        bed = "{rn}/{tissue}/{tissue}.expr.log2.bed.gz",
+        bedi = "{rn}/{tissue}/{tissue}.expr.log2.bed.gz.tbi",
+        qtl = "{rn}/{tissue}/{tissue}.cis_qtl.txt.gz",
+        qtl_indep = "{rn}/{tissue}/{tissue}.cis_independent_qtl.txt.gz",
+        covar = "{rn}/{tissue}/covar.txt"
     output:
-        "{tissue}/{tissue}.aFC.txt"
+        "{rn}/{tissue}/{tissue}.aFC.txt"
     resources:
         walltime = 12
     shell:

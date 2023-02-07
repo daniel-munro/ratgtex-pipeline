@@ -44,8 +44,7 @@ rule rsem:
             {params.ref_prefix} \
             {params.out_prefix}
         gzip {params.out_prefix}.genes.results
-        rm {params.out_prefix}.isoforms.results
-        rm -r {params.out_prefix}.stat
+        gzip {params.out_prefix}.isoforms.results
         """
 
 

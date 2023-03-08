@@ -45,7 +45,7 @@ for sample in samples:
     )
     counts["frac_alt"] = counts["altCount"] / (counts["refCount"] + counts["altCount"])
     for geno_sam in geno_samples:
-        snps = [snp for snp in counts.index if geno[geno_sam][snp] is not None]
+        snps = [snp for snp in counts.index if snp in geno[geno_sam] and geno[geno_sam][snp] is not None]
         diff = counts.loc[snps, "frac_alt"] - [geno[geno_sam][snp] for snp in snps]
         sim = np.mean(1 - np.abs(diff))
         simil.loc[sample, geno_sam] = sim

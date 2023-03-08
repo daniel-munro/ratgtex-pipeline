@@ -9,6 +9,7 @@ set -euxo pipefail
 #    it keeps the SNP and just replaces the REF allele. But we shouldn't trust those genotypes.
 
 BRAIN_REGION_DIR=~/bulk/br/geno_rn7
+ROUND10_VCF=~/ratgtex/geno_rn7/original/Heterogenous-stock_n15552_02222023_stitch2_QC_Sex_Het_pass_n14505.vcf.gz
 
 mkdir -p geno_rn7/intermediate
 
@@ -24,12 +25,49 @@ plink2 --vcf geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf.gz \
     --recode vcf \
     --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2
 bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf
-bcftools norm geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz \
+## Rescue one sample that was contaminated in the 30x genotypes and removed
+## (Do this plink step before merging to fix the chrom names being different formats)
+plink2 --vcf $ROUND10_VCF \
+    --keep geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.txt \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --recode vcf \
+    --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6
+bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf
+tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz
+tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf.gz
+bcftools merge \
+    geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz \
+    geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf.gz \
+    -O z -o geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.3.vcf.gz
+bcftools norm geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.3.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
     -O z -o geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
 tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
+
+### Brain ###
+echo '*** Preparing whole brain genotypes...'
+plink2 --vcf $ROUND10_VCF \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --keep geno_rn7/intermediate/Brain_ids.txt \
+    --recode vcf \
+    --out geno_rn7/intermediate/Brain.1
+bgzip geno_rn7/intermediate/Brain.1.vcf
+bcftools norm geno_rn7/intermediate/Brain.1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL,FORMAT/GP,FORMAT/DS \
+    -O z -o geno_rn7/intermediate/Brain.vcf.gz
+tabix -f geno_rn7/intermediate/Brain.vcf.gz
 
 ### Final processing ###
 # for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
@@ -39,6 +77,7 @@ for DSET in IL_LHb_NAcc_OFC_PL; do
         --min-alleles 2 \
         --max-alleles 2 \
         --types snps \
+        --targets "^Y,MT" \
         -O z -o geno_rn7/$DSET.tmp.vcf.gz
     # Reheader to remove confusing extra info:
     cp geno_rn7/header.txt geno_rn7/header.tmp.txt

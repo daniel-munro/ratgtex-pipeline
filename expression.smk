@@ -67,6 +67,7 @@ rule assemble_expression:
     """
     input:
         rsem = lambda w: expand("{{rn}}/{{tissue}}/rsem_out/{rat_id}.genes.results.gz", rat_id=ids(w.tissue)),
+        samples = "{rn}/{tissue}/rat_ids.txt",
         anno = f"{ANNO_PREFIX}.genes.gtf"
     output:
         multiext("{rn}/{tissue}/{tissue}.expr.log2.bed", ".gz", ".gz.tbi"),
@@ -78,7 +79,7 @@ rule assemble_expression:
         prefix = "{rn}/{tissue}/{tissue}.expr"
     shell:
         """
-        python3 scripts/assemble_expression.py {params.rsem_dir} {input.anno} {params.prefix}
+        python3 scripts/assemble_expression.py {params.rsem_dir} {input.samples} {input.anno} {params.prefix}
         bgzip {params.prefix}.log2.bed
         bgzip {params.prefix}.tpm.bed
         bgzip {params.prefix}.iqn.bed

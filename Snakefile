@@ -47,7 +47,8 @@ rule all:
         # f"{RN}/{TISSUE}/{TISSUE}.cis_qtl_all_pvals.txt.gz",
         # f"{RN}/{TISSUE}/{TISSUE}.aFC.txt",
         # f"{RN}/{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
-        # f"{RN}/{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz"
+        # f"{RN}/{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz",
+        expand("{rn}/{tissue}/qc/rna_to_geno_summary.tsv", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.expr.tpm.bed.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
@@ -165,10 +166,10 @@ rule tensorqtl_independent:
         geno_prefix = "{rn}/{tissue}/geno",
     resources:
         walltime = 20,
-        # partition = "--partition=gpu",
+        partition = "--partition=gpu",
     shell:
-        # module load cuda
         """
+        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

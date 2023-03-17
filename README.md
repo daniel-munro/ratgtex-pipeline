@@ -105,17 +105,17 @@ On TSCC, which uses TORQUE scheduling, the jobs run in the default conda environ
 
 I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`, which you can copy or make symbolic links to.
 
-#### `ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}`
+#### `ref_rn6/Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}` and `ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.{dict,fa,fa.fai}`
 
-Rat genome files.
+Rat genome files from Ensembl.
 
-#### `ref/Rattus_norvegicus.Rnor_6.0.99.gtf`
+#### `ref_rn6/Rattus_norvegicus.Rnor_6.0.99.gtf` and `ref_rn7/Rattus_norvegicus.mRatBN7.2.108.gtf`
 
-Gene annotations.
+Gene annotations from Ensembl.
 
-#### `geno/all_rats_exons.vcf.gz`
+#### `geno_rn{6/7}/all_rats_exons.vcf.gz`
 
-This contains the genotypes for exon regions from all 6147 HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes.
+This contains the genotypes for exon regions from the thousands of HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes. It can be generated with `scripts/genotypes_rn{6/7}.sh`.
 
 #### `config.yaml`
 
@@ -145,20 +145,20 @@ Some of these are inherent to the data, while others, e.g. `fastq_path`, may nee
 
 The FASTQ files can be in any accessible location. Currently only single-read RNA-Seq is implemented, but paired-end will also be supported soon.
 
-#### `{tissue}/fastq_map.txt`
+#### `rn{6/7}/{tissue}/fastq_map.txt`
 
 A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. Or, for paired-end reads, each row contains the first FASTQ path, second FASTQ path, and rat ID per file pair.
 - If multiple files map to the same ID, i.e. the ID appears in multiple rows, reads from those files will be aligned into one BAM file.
 - You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
-- Any listed files whose rat IDs are not in `{tissue}/rat_ids.txt` will be ignored.
+- Any listed files whose rat IDs are not in `rn{6/7}/{tissue}/rat_ids.txt` will be ignored.
 
-#### `{tissue}/rat_ids.txt`
+#### `rn{6/7}/{tissue}/rat_ids.txt`
 
 A file listing the rat IDs for the dataset, one per line. This list determines which samples are included in the processing.
 
-#### `geno/{dataset}.vcf.gz`
+#### `geno_rn{6/7}/{dataset}.vcf.gz`
 
-A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/genotypes.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/genotypes_rn{6/7}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
 
 ## Running
 
@@ -168,7 +168,7 @@ Edit `config.yaml` in this directory so that the tissue(s) you want to process a
 
 #### Pre-run checks
 
-Before running Snakemake, run `python3 scripts/qc_init_check.py {tissuename}`, which checks the input data and config for issues.
+Before running Snakemake, run `python3 scripts/qc_init_check.py {rn6/rn7} {tissuename}`, which checks the input data and config for issues.
 
 #### Sample mixup checks
 
@@ -177,7 +177,7 @@ The way to do sample mixup testing is to generate the mixup checking outputs usi
 - To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
-Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `src/genotypes.sh`).
+Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `rn{6/7}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `rn{6/7}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/genotypes_rn{6/7}.sh`).
 
 ### Continue
 

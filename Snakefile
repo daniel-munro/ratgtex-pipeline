@@ -35,7 +35,8 @@ include: "splicing.smk"
 # TISSUES = ["BLA", "NAcc2", "PL2"]
 # TISSUES = ["Brain"]
 # TISSUES = ["Adipose", "Liver"]
-TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
+# TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
+TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Brain"]
 rule all:
     """List any files here that you want to generate by default
     (i.e. without having to specify on command line when running snakemake).
@@ -48,9 +49,10 @@ rule all:
         # f"{RN}/{TISSUE}/{TISSUE}.aFC.txt",
         # f"{RN}/{TISSUE}/{TISSUE}.trans_qtl_pairs.txt.gz",
         # f"{RN}/{TISSUE}/splice/{TISSUE}_splice.cis_independent_qtl.txt.gz",
-        expand("{rn}/{tissue}/qc/rna_to_geno_summary.tsv", rn=RN, tissue=TISSUES),
+        # expand("{rn}/{tissue}/qc/rna_to_geno_summary.tsv", rn=RN, tissue=TISSUES),
+        # expand("{rn}/{tissue}/qc/all_rats_summary.tsv", rn=RN, tissue=TISSUES),
+        # expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.expr.tpm.bed.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.aFC.txt", rn=RN, tissue=TISSUES),
@@ -94,11 +96,14 @@ rule prune_for_covar:
         pruned_prefix = "{rn}/{tissue}/covar/geno"
     shell:
         # --geno 0.05 filters variants with >5% missing values (the rest will be imputed)
+        # Updated to --geno 0.00 due to cases where one or a few samples have many fewer genotyped
+        # SNPs (e.g. using different genotyping methods). Without subsetting to shared SNPs, those
+        # samples couldn't be imputed later due to having so many missing values.
         """
         mkdir -p {params.pruned_dir}
         plink2 \
             --bfile {params.prefix} \
-            --geno 0.05 \
+            --geno 0.00 \
             --maf 0.05 \
             --indep-pairwise 200 100 0.1 \
             --out {params.pruned_prefix}
@@ -166,10 +171,10 @@ rule tensorqtl_independent:
         geno_prefix = "{rn}/{tissue}/geno",
     resources:
         walltime = 20,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
+        # module load cuda
         """
-        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

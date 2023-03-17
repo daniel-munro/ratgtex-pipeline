@@ -124,7 +124,7 @@ rule qc_mixups_compare_to_all_rats:
     """For samples without a genotype match, check for matches in all rats.
     After running qc_mixups_compare_rna_to_vcf, some mismatched RNA samples might still
     not have a genotype match. This rule will compare their test SNPs to those of all
-    6000+ rats we have genotypes for to see if any match. It's good to also include at
+    of the thousands of rats we have genotypes for to see if any match. It's good to also include at
     least one RNA sample ID that did match as a positive control (as long as it's included
     in the all-rat VCF).
     """
@@ -132,20 +132,24 @@ rule qc_mixups_compare_to_all_rats:
         vcf = "geno_{rn}/all_rats_exons.vcf.gz",
         vcfi = "geno_{rn}/all_rats_exons.vcf.gz.tbi",
         samples = "{rn}/{tissue}/qc/samples_without_matches.txt",
+        snps = "geno_{rn}/all_rats_exons.snps.txt",
     output:
         "{rn}/{tissue}/qc/all_rats_summary.tsv"
     params:
-        count_dir = "{rn}/{tissue}/qc/test_snps"
+        count_dir = "{rn}/{tissue}/qc/test_snps",
+        n_snps = 10000
     resources:
         walltime = 4,
-        mem_mb = 16000
+        mem_mb = 32000
     shell:
         """
         python3 scripts/qc_rna_to_geno_all_rats.py \
-            {input.vcf} \
-            {params.count_dir} \
-            {input.samples} \
-            {output}
+            --vcf {input.vcf} \
+            --count-dir {params.count_dir} \
+            --samples {input.samples} \
+            --snps {input.snps} \
+            --n-snps {params.n_snps} \
+            --out-summary {output}
         """
 
 rule qc_sex_concordance:

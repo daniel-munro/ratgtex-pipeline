@@ -10,7 +10,7 @@ import pysam
 def geno_frac_alt(gt: tuple) -> float:
     """Convert genotype to fraction alt allele (0, 0.5, or 1)"""
     # return None if gt[0] is None or gt[1] is None else sum(gt) / 2
-    if gt[0] in {0, 1} and gt[1] in {0, 1}:
+    if len(gt) == 2 and gt[0] in {0, 1} and gt[1] in {0, 1}:
         return sum(gt) / 2
     return None
 
@@ -18,14 +18,16 @@ def geno_frac_alt(gt: tuple) -> float:
 parser = argparse.ArgumentParser(
     description="Check for RNA/genotype matches against a large set of rat genotypes"
 )
-parser.add_argument("vcf", type=Path, help="VCF file with exon SNPs for all rats")
+parser.add_argument("--vcf", type=Path, help="VCF file with exon SNPs for all rats")
 parser.add_argument(
-    "count_dir",
+    "--count-dir",
     type=Path,
     help="Directory containing ASEReadCounter outputs named {sample_id}.readcounts.txt",
 )
-parser.add_argument("samples", type=Path, help="File containing sample IDs, one per line, to check")
-parser.add_argument("out_summary", type=Path, help="Output file for summary table")
+parser.add_argument("--samples", type=Path, help="File containing sample IDs, one per line, to check")
+parser.add_argument("--snps", type=Path, help="File containing all variant IDs, one per line, to select a subset to be loaded")
+parser.add_argument("--n-snps", type=int, help="If provided, randomly sample N variants from the VCF to load and test for time and memory efficiency. Actual number of SNPs used per sample will likely be lower since some may not be found in a sample's ASE counts.")
+parser.add_argument("--out-summary", type=Path, help="Output file for summary table")
 args = parser.parse_args()
 
 with args.samples.open() as f:
@@ -33,8 +35,19 @@ with args.samples.open() as f:
 vcf = pysam.VariantFile(args.vcf)
 geno_samples = list(vcf.header.samples)
 geno = {sample: {} for sample in geno_samples}
+
+if args.n_snps is not None:
+    with args.snps.open() as f:
+        snp_set = f.read().splitlines()
+        rng = np.random.default_rng(seed=20230312)
+        snp_set = set(rng.choice(snp_set, size=args.n_snps, replace=False))
+else:
+    snp_set = None
+
 x = 0
 for rec in vcf.fetch():
+    if snp_set is not None and rec.id not in snp_set:
+        continue
     x += 1
     if x % 1000 == 0:
         print(f"Reading VCF... now at {rec.id}", flush=True)

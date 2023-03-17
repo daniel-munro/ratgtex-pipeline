@@ -14,6 +14,7 @@ ROUND10_VCF=~/ratgtex/geno_rn7/original/Heterogenous-stock_n15552_02222023_stitc
 mkdir -p geno_rn7/intermediate
 
 ### IL_LHb_NAcc_OFC_PL ###
+echo '*** Preparing IL_LHb_NAcc_OFC_PL genotypes...'
 bcftools annotate $BRAIN_REGION_DIR/88_outbred_HS_mRatBN7_2.vcf.gz \
     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
     --rename-chrs geno_rn7/chroms.tsv \
@@ -25,21 +26,22 @@ plink2 --vcf geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf.gz \
     --recode vcf \
     --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2
 bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf
+tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz
 ## Rescue one sample that was contaminated in the 30x genotypes and removed
+## plus two samples that were mislabeled but matched genotypes in round 10
 ## (Do this plink step before merging to fix the chrom names being different formats)
 plink2 --vcf $ROUND10_VCF \
-    --keep geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.txt \
+    --keep geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.round10.txt \
     --set-all-var-ids 'chr@:#' \
     --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6
-bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf
-tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz
-tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf.gz
+    --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.round10
+bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.round10.vcf
+tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.round10.vcf.gz
 bcftools merge \
     geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.2.vcf.gz \
-    geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.00078A01A6.vcf.gz \
+    geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.round10.vcf.gz \
     -O z -o geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.3.vcf.gz
 bcftools norm geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.3.vcf.gz \
     --rm-dup snps \
@@ -49,6 +51,25 @@ bcftools norm geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.3.vcf.gz \
     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
     -O z -o geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
 tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
+
+### Eye ###
+echo '*** Preparing Eye genotypes...'
+plink2 --vcf $ROUND10_VCF \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --keep geno_rn7/intermediate/Eye_ids.txt \
+    --recode vcf \
+    --out geno_rn7/intermediate/Eye.1
+bgzip geno_rn7/intermediate/Eye.1.vcf
+bcftools norm geno_rn7/intermediate/Eye.1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/intermediate/Eye.vcf.gz
+tabix -f geno_rn7/intermediate/Eye.vcf.gz
 
 ### Brain ###
 echo '*** Preparing whole brain genotypes...'
@@ -65,9 +86,28 @@ bcftools norm geno_rn7/intermediate/Brain.1.vcf.gz \
     --check-ref x \
     --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
     -Ou | bcftools annotate \
-    -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL,FORMAT/GP,FORMAT/DS \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
     -O z -o geno_rn7/intermediate/Brain.vcf.gz
 tabix -f geno_rn7/intermediate/Brain.vcf.gz
+
+### BLA_NAcc2_PL2 ###
+echo '*** Preparing BLA_NAcc2_PL2 genotypes...'
+plink2 --vcf $ROUND10_VCF \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --keep geno_rn7/intermediate/BLA_NAcc2_PL2_ids.txt \
+    --recode vcf \
+    --out geno_rn7/intermediate/BLA_NAcc2_PL2.1
+bgzip geno_rn7/intermediate/BLA_NAcc2_PL2.1.vcf
+bcftools norm geno_rn7/intermediate/BLA_NAcc2_PL2.1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz
+tabix -f geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz
 
 ### Final processing ###
 # for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
@@ -102,3 +142,16 @@ done
 #     -Ou | bcftools view \
 #     --drop-genotypes \
 #     -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno_rn7/alleles.txt.gz
+
+# ### Get exon SNPs for all genotyped rats for sample mixup QC
+# zcat ref_rn7/exon_regions.tsv.gz | head -239746 > geno_rn7/intermediate/all_rats_exon_regions.tsv
+# plink2 --vcf $ROUND10_VCF \
+#     --extract bed1 geno_rn7/intermediate/all_rats_exon_regions.tsv \
+#     --set-all-var-ids 'chr@:#' \
+#     --recode vcf \
+#     --out geno_rn7/intermediate/all_rats_exons
+# bgzip geno_rn7/intermediate/all_rats_exons.vcf
+# bcftools annotate geno_rn7/intermediate/all_rats_exons.vcf.gz \
+#     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+#     -O z -o geno_rn7/all_rats_exons.vcf.gz
+# tabix -f geno_rn7/all_rats_exons.vcf.gz

@@ -77,9 +77,9 @@ rule splice_covariates:
         "{rn}/{tissue}/splice/{tissue}.covar_splice.txt"
     params:
         n_geno_pcs = 5,
-        n_expr_pcs = 10
+        n_pheno_pcs = 10
     shell:
-        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
+        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_pheno_pcs} {output}"
 
 
 rule tensorqtl_perm_splice:
@@ -125,10 +125,10 @@ rule tensorqtl_independent_splice:
         outdir = "{rn}/{tissue}/splice"
     resources:
         walltime = 12,
-        partition = "--partition=gpu",
+        # partition = "--partition=gpu",
     shell:
+        # module load cuda
         """
-        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

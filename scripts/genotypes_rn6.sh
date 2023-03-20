@@ -14,7 +14,7 @@ ADIPOSE_LIVER_DIR=~/bulk/fl/Imputed_Geno
 WHOLEBR_DIR=~/wb/data/genotype
 MITCHELL_DIR=~/sm/data/genotype/Mitchell_Hitzemann
 
-mkdir -p geno/intermediate
+mkdir -p geno_rn6/intermediate
 
 ### IL_LHb_NAcc_OFC_PL ###
 echo '*** Preparing Brain region genotypes...'
@@ -22,14 +22,14 @@ plink2 --vcf $BRAIN_REGION_DIR/P50.rnaseq.88.unpruned.vcf.gz \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno/intermediate/IL_LHb_NAcc_OFC_PL.1
-bgzip geno/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf
-bcftools norm geno/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf.gz \
+    --out geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.1
+bgzip geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf
+bcftools norm geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.1.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
-    -O z -o geno/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
-tabix -f geno/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
+    -O z -o geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
+tabix -f geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz
 
 ### Eye ###
 echo '*** Preparing Eye genotypes...'
@@ -50,18 +50,18 @@ echo '*** Preparing Eye genotypes...'
 ##     --rename-chrs chrs.txt \
 ##     -Oz -o ../intermediate/Eye.1.vcf.gz
 ### Now for actual merge:
-plink2 --vcf geno/intermediate/Eye.1.vcf.gz \
+plink2 --vcf geno_rn6/intermediate/Eye.1.vcf.gz \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno/intermediate/Eye.2
-bgzip geno/intermediate/Eye.2.vcf
-bcftools norm geno/intermediate/Eye.2.vcf.gz \
+    --out geno_rn6/intermediate/Eye.2
+bgzip geno_rn6/intermediate/Eye.2.vcf
+bcftools norm geno_rn6/intermediate/Eye.2.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
-    -O z -o geno/intermediate/Eye.vcf.gz
-tabix -f geno/intermediate/Eye.vcf.gz
+    -O z -o geno_rn6/intermediate/Eye.vcf.gz
+tabix -f geno_rn6/intermediate/Eye.vcf.gz
 
 ### Adipose_Liver ###
 echo '*** Preparing Adipose genotypes...'
@@ -70,14 +70,14 @@ plink2 --bfile $ADIPOSE_DIR/RNAed.chrall \
     --set-all-var-ids 'chr@:#' \
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
-    --out geno/intermediate/Adipose_Liver.1
-bgzip geno/intermediate/Adipose_Liver.1.vcf
-bcftools norm geno/intermediate/Adipose_Liver.1.vcf.gz \
+    --out geno_rn6/intermediate/Adipose_Liver.1
+bgzip geno_rn6/intermediate/Adipose_Liver.1.vcf
+bcftools norm geno_rn6/intermediate/Adipose_Liver.1.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
-    -O z -o geno/intermediate/Adipose_Liver.vcf.gz
-tabix -f geno/intermediate/Adipose_Liver.vcf.gz
+    -O z -o geno_rn6/intermediate/Adipose_Liver.vcf.gz
+tabix -f geno_rn6/intermediate/Adipose_Liver.vcf.gz
 
 ### Brain ###
 echo '*** Preparing whole brain genotypes...'
@@ -86,20 +86,20 @@ plink2 --vcf $WHOLEBR_DIR/Whole_brain_n7521_05102022_stitch2_QC_Sex_Het_pass_n34
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno/intermediate/Brain.1
-bgzip geno/intermediate/Brain.1.vcf
+    --out geno_rn6/intermediate/Brain.1
+bgzip geno_rn6/intermediate/Brain.1.vcf
 # Remove Riptide prefix from sample IDs
-zcat geno/intermediate/Brain.1.vcf.gz | head -100 | grep "^#CHROM" | cut -f 10- | sed 's/\t/\n/g' | awk -F'_' '{print $1 "_" $2 "\t" $2}' > geno/intermediate/Brain_rename.txt
-bcftools norm geno/intermediate/Brain.1.vcf.gz \
+zcat geno_rn6/intermediate/Brain.1.vcf.gz | head -100 | grep "^#CHROM" | cut -f 10- | sed 's/\t/\n/g' | awk -F'_' '{print $1 "_" $2 "\t" $2}' > geno_rn6/intermediate/Brain_rename.txt
+bcftools norm geno_rn6/intermediate/Brain.1.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     -Ou | bcftools reheader \
-    -s geno/intermediate/Brain_rename.txt \
+    -s geno_rn6/intermediate/Brain_rename.txt \
     | bcftools annotate \
     -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL \
-    -O z -o geno/intermediate/Brain.vcf.gz
-tabix -f geno/intermediate/Brain.vcf.gz
+    -O z -o geno_rn6/intermediate/Brain.vcf.gz
+tabix -f geno_rn6/intermediate/Brain.vcf.gz
 
 ### BLA_NAcc2_PL2 ###
 echo '*** Preparing u01_suzanne_mitchell genotypes...'
@@ -108,32 +108,32 @@ plink2 --vcf $MITCHELL_DIR/Heterogenous-stock_n4140_11152021_stitch1_QC_sex_miss
     --fa ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     --ref-from-fa force \
     --recode vcf \
-    --out geno/intermediate/BLA_NAcc2_PL2.1
-bgzip geno/intermediate/BLA_NAcc2_PL2.1.vcf
-bcftools norm geno/intermediate/BLA_NAcc2_PL2.1.vcf.gz \
+    --out geno_rn6/intermediate/BLA_NAcc2_PL2.1
+bgzip geno_rn6/intermediate/BLA_NAcc2_PL2.1.vcf
+bcftools norm geno_rn6/intermediate/BLA_NAcc2_PL2.1.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa \
     -Ou | bcftools annotate \
     -x INFO/EAF,INFO/INFO_SCORE,INFO/HWE,INFO/ERC,INFO/EAC,INFO/PAF,INFO/REF_PANEL \
-    -O z -o geno/intermediate/BLA_NAcc2_PL2.vcf.gz
-tabix -f geno/intermediate/BLA_NAcc2_PL2.vcf.gz
+    -O z -o geno_rn6/intermediate/BLA_NAcc2_PL2.vcf.gz
+tabix -f geno_rn6/intermediate/BLA_NAcc2_PL2.vcf.gz
 
 ### Final processing ###
 # for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
 for DSET in Brain; do
     echo "*** Final processing: $DSET..."
-    bcftools view geno/intermediate/$DSET.vcf.gz \
+    bcftools view geno_rn6/intermediate/$DSET.vcf.gz \
         --min-alleles 2 \
         --max-alleles 2 \
         --types snps \
-        -O z -o geno/$DSET.tmp.vcf.gz
+        -O z -o geno_rn6/$DSET.tmp.vcf.gz
     # Reheader for correct contig lengths and to remove confusing extra info:
-    cp geno/header.txt geno/header.tmp.txt
-    bcftools view -h geno/$DSET.tmp.vcf.gz | grep '^#CHROM' >> geno/header.tmp.txt
-    bcftools reheader -h geno/header.tmp.txt geno/$DSET.tmp.vcf.gz -o geno/$DSET.vcf.gz
-    rm geno/$DSET.tmp.vcf.gz geno/header.tmp.txt
-    tabix -f geno/$DSET.vcf.gz
+    cp geno_rn6/header.txt geno_rn6/header.tmp.txt
+    bcftools view -h geno_rn6/$DSET.tmp.vcf.gz | grep '^#CHROM' >> geno_rn6/header.tmp.txt
+    bcftools reheader -h geno_rn6/header.tmp.txt geno_rn6/$DSET.tmp.vcf.gz -o geno_rn6/$DSET.vcf.gz
+    rm geno_rn6/$DSET.tmp.vcf.gz geno_rn6/header.tmp.txt
+    tabix -f geno_rn6/$DSET.vcf.gz
 done
 
 ### Get all alleles ###
@@ -143,30 +143,30 @@ done
 bcftools merge \
     -m none \
     --force-samples \
-    geno/intermediate/Adipose_Liver.vcf.gz \
-    geno/intermediate/BLA_NAcc2_PL2.vcf.gz \
-    geno/intermediate/Brain.vcf.gz \
-    geno/intermediate/Eye.vcf.gz \
-    geno/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
+    geno_rn6/intermediate/Adipose_Liver.vcf.gz \
+    geno_rn6/intermediate/BLA_NAcc2_PL2.vcf.gz \
+    geno_rn6/intermediate/Brain.vcf.gz \
+    geno_rn6/intermediate/Eye.vcf.gz \
+    geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
     -Ou | bcftools view \
     --drop-genotypes \
-    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno_rn6/alleles.txt.gz
 
 ### Troubleshooting
 
 # #Get SNPs with multiple REF alleles (i.e. wrong allele in at least one dataset)
 # cat \
-#     <(zcat geno/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz | grep -v '^#' | cut -f3,4) \
-#     <(zcat geno/intermediate/Eye.vcf.gz | grep -v '^#' | cut -f3,4) \
-#     <(zcat geno/intermediate/adipose.vcf.gz | grep -v '^#' | cut -f3,4) \
+#     <(zcat geno_rn6/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz | grep -v '^#' | cut -f3,4) \
+#     <(zcat geno_rn6/intermediate/Eye.vcf.gz | grep -v '^#' | cut -f3,4) \
+#     <(zcat geno_rn6/intermediate/adipose.vcf.gz | grep -v '^#' | cut -f3,4) \
 #     | sort | uniq | cut -f1 | sort | uniq -d > dup.txt
 
 # # Get SNP 'regions' to get true REF alleles using samtools faidx:
-# zcat geno/intermediate/adipose.vcf.gz | grep -v '^#' | cut -f1,2 \
-#     | awk '{print $1 ":" $2 "-" $2}' | head > geno/intermediate/regions.adipose.txt
+# zcat geno_rn6/intermediate/adipose.vcf.gz | grep -v '^#' | cut -f1,2 \
+#     | awk '{print $1 ":" $2 "-" $2}' | head > geno_rn6/intermediate/regions.adipose.txt
 
 # # Get true REF allele for each of those SNPs
-# samtools faidx ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa -r geno/intermediate/regions.adipose.txt
+# samtools faidx ref/Rattus_norvegicus.Rnor_6.0.dna.toplevel.fa -r geno_rn6/intermediate/regions.adipose.txt
 
 
 # ### Coding SNPs for all available HS rats

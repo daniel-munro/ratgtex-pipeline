@@ -53,6 +53,8 @@ rule all:
         # expand("{rn}/{tissue}/qc/all_rats_summary.tsv", rn=RN, tissue=TISSUES),
         # expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.expr.tpm.bed.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.cis_qtl.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/{tissue}.cis_independent_qtl.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.aFC.txt", rn=RN, tissue=TISSUES),
@@ -143,7 +145,7 @@ rule tensorqtl_perm:
     params:
         geno_prefix = "{rn}/{tissue}/geno",
     resources:
-        walltime = 12,
+        walltime = 20,
         partition = "--partition=gpu",
     shell:
         """
@@ -171,10 +173,10 @@ rule tensorqtl_independent:
         geno_prefix = "{rn}/{tissue}/geno",
     resources:
         walltime = 20,
-        # partition = "--partition=gpu",
+        partition = "--partition=gpu",
     shell:
-        # module load cuda
         """
+        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

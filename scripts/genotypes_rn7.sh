@@ -127,31 +127,30 @@ for DSET in IL_LHb_NAcc_OFC_PL; do
     tabix -f geno_rn7/$DSET.vcf.gz
 done
 
-# ### Get all alleles ###
-# ## -m none
-# ## --force-samples
-# ## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
-# bcftools merge \
-#     -m none \
-#     --force-samples \
-#     geno_rn7/intermediate/Adipose_Liver.vcf.gz \
-#     geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz \
-#     geno_rn7/intermediate/Brain.vcf.gz \
-#     geno_rn7/intermediate/Eye.vcf.gz \
-#     geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
-#     -Ou | bcftools view \
-#     --drop-genotypes \
-#     -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno_rn7/alleles.txt.gz
+### Get all alleles ###
+## -m none
+## --force-samples
+## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
+bcftools merge \
+    -m none \
+    --force-samples \
+    geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz \
+    geno_rn7/intermediate/Brain.vcf.gz \
+    geno_rn7/intermediate/Eye.vcf.gz \
+    geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
+    -Ou | bcftools view \
+    --drop-genotypes \
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno_rn7/alleles.txt.gz
 
-# ### Get exon SNPs for all genotyped rats for sample mixup QC
-# zcat ref_rn7/exon_regions.tsv.gz | head -239746 > geno_rn7/intermediate/all_rats_exon_regions.tsv
-# plink2 --vcf $ROUND10_VCF \
-#     --extract bed1 geno_rn7/intermediate/all_rats_exon_regions.tsv \
-#     --set-all-var-ids 'chr@:#' \
-#     --recode vcf \
-#     --out geno_rn7/intermediate/all_rats_exons
-# bgzip geno_rn7/intermediate/all_rats_exons.vcf
-# bcftools annotate geno_rn7/intermediate/all_rats_exons.vcf.gz \
-#     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
-#     -O z -o geno_rn7/all_rats_exons.vcf.gz
-# tabix -f geno_rn7/all_rats_exons.vcf.gz
+### Get exon SNPs for all genotyped rats for sample mixup QC
+zcat ref_rn7/exon_regions.tsv.gz | head -239746 > geno_rn7/intermediate/all_rats_exon_regions.tsv
+plink2 --vcf $ROUND10_VCF \
+    --extract bed1 geno_rn7/intermediate/all_rats_exon_regions.tsv \
+    --set-all-var-ids 'chr@:#' \
+    --recode vcf \
+    --out geno_rn7/intermediate/all_rats_exons
+bgzip geno_rn7/intermediate/all_rats_exons.vcf
+bcftools annotate geno_rn7/intermediate/all_rats_exons.vcf.gz \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/all_rats_exons.vcf.gz
+tabix -f geno_rn7/all_rats_exons.vcf.gz

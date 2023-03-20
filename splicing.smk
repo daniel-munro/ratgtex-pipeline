@@ -95,7 +95,7 @@ rule tensorqtl_perm_splice:
         geno_prefix = "{rn}/{tissue}/geno",
         outdir = "{rn}/{tissue}/splice"
     resources:
-        walltime = 12,
+        walltime = 20,
         partition = "--partition=gpu",
     shell:
         """
@@ -124,11 +124,11 @@ rule tensorqtl_independent_splice:
         geno_prefix = "{rn}/{tissue}/geno",
         outdir = "{rn}/{tissue}/splice"
     resources:
-        walltime = 12,
-        # partition = "--partition=gpu",
+        walltime = 20,
+        partition = "--partition=gpu",
     shell:
-        # module load cuda
         """
+        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \

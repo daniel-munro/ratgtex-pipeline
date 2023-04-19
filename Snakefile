@@ -60,6 +60,7 @@ rule all:
         expand("{rn}/{tissue}/{tissue}.aFC.txt", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{rn}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
         expand("{rn}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
 
 

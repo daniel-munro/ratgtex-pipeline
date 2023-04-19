@@ -37,7 +37,12 @@ rule exon_table:
 
 
 rule splice_bed:
-    """Note: fails if intermediate files are already present."""
+    """Note: fails if intermediate files are already present.
+    
+    For some reason the phenotype groups file produced by
+    cluster_prepare_fastqtl.py includes a line '\t0', so that is removed so
+    tensorQTL nominal mode will work.
+    """
     input:
         junc = lambda w: expand("{{rn}}/{{tissue}}/splice/junc/{rat_id}.junc.gz", rat_id=ids(w.tissue)),
         exons = F"{ANNO_PREFIX}.genes.exons.tsv",
@@ -63,6 +68,9 @@ rule splice_bed:
             {params.prefix} \
             --leafcutter_dir {params.script_dir} \
             --output_dir {params.tmpdir}
+        mv {params.tmpdir}/{wildcards.tissue}.leafcutter.phenotype_groups.txt {params.tmpdir}/{wildcards.tissue}.leafcutter.phenotype_groups.tmp.txt
+        grep -P -v '^\t0' {params.tmpdir}/{wildcards.tissue}.leafcutter.phenotype_groups.tmp.txt > {params.tmpdir}/{wildcards.tissue}.leafcutter.phenotype_groups.txt
+        rm {params.tmpdir}/{wildcards.tissue}.leafcutter.phenotype_groups.tmp.txt
         mv -i {params.tmpdir}/{wildcards.tissue}.leafcutter* {params.tmpdir}/..
         rm -r {params.tmpdir}
         """
@@ -173,48 +181,54 @@ rule tensorqtl_trans_splice:
         """
 
 
-## This gives an error since the groups files are out of order, so I'll omit for now.
-# rule tensorqtl_nominal_splice:
-#     """Get summary statistics for all tested cis-window SNPs per gene."""
-#     input:
-#         geno = multiext("{tissue}/geno", ".bed", ".bim", ".fam"),
-#         bed = "{tissue}/splice/{tissue}.leafcutter.bed.gz",
-#         bedi = "{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
-#         covar = "{tissue}/splice/{tissue}.covar_splice.txt",
-#         groups = "{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
-#     output:
-#         expand("{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
-#     params:
-#         geno_prefix = "{tissue}/geno",
-#         outdir = "{tissue}/splice/nominal",
-#         out_prefix = "{tissue}_splice",
-#     resources:
-#         walltime = 12,
-#         # partition = "--partition=gpu",
-#     shell:
-#         # module load cuda
-#         """
-#         mkdir -p {params.outdir}
-#         python3 -m tensorqtl \
-#             {params.geno_prefix} \
-#             {input.bed} \
-#             {params.out_prefix} \
-#             --covariates {input.covar} \
-#             --phenotype_groups {input.groups} \
-#             --output_dir {params.outdir} \
-#             --mode cis_nominal
-#         """
+rule tensorqtl_nominal_splice:
+    """Get summary statistics for all tested cis-window SNPs per gene."""
+    input:
+        geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
+        bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
+        bedi = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz.tbi",
+        covar = "{rn}/{tissue}/splice/{tissue}.covar_splice.txt",
+        groups = "{rn}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
+    output:
+        expand("{{rn}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+    params:
+        geno_prefix = "{rn}/{tissue}/geno",
+        outdir = "{rn}/{tissue}/splice/nominal",
+        out_prefix = "{tissue}_splice",
+    resources:
+        walltime = 12,
+        # partition = "--partition=gpu",
+    shell:
+        # module load cuda
+        """
+        mkdir -p {params.outdir}
+        python3 -m tensorqtl \
+            {params.geno_prefix} \
+            {input.bed} \
+            {params.out_prefix} \
+            --covariates {input.covar} \
+            --phenotype_groups {input.groups} \
+            --output_dir {params.outdir} \
+            --mode cis_nominal
+        """
 
 
-# rule tensorqtl_all_signif_splice:
-#     """Extract all significant cis SNP-gene pairs."""
-#     input:
-#         perm = "{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
-#         nom = expand("{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21)),
-#     output:
-#         "{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz"
-#     params:
-#         nom_prefix = "{tissue}/splice/nominal/{tissue}_splice",
-#     shell:
-#         "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
+rule tensorqtl_all_signif_splice:
+    """Extract all significant cis SNP-gene pairs."""
+    input:
+        perm = "{rn}/{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
+        nom = expand("{{rn}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21)),
+        groups = "{rn}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
+    output:
+        "{rn}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz",
+    params:
+        nom_prefix = "{rn}/{tissue}/splice/nominal/{tissue}_splice",
+    shell:
+        """
+        python3 scripts/tensorqtl_all_signif.py \
+            {input.perm} \
+            {params.nom_prefix} \
+            {output} \
+            --groups {input.groups}
+        """
 

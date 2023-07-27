@@ -260,7 +260,7 @@ rule tensorqtl_all_signif:
     params:
         nom_prefix = "{rn}/{tissue}/nominal/{tissue}"
     shell:
-        "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output}"
+        "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output} --fdr 0.05"
 
 
 rule tensorqtl_all_cis_pvals:

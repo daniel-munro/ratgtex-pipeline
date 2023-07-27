@@ -4,15 +4,18 @@ import argparse
 from fastparquet import ParquetFile
 
 parser = argparse.ArgumentParser(
-    description="Get per-gene pval thresholds from tensorQTL cis (permutations) output, then use it to filter cis_nominal output to get all significant cis-eQTLs."
+    description="Get per-gene pval thresholds from tensorQTL cis (permutations) output, then use it to filter cis_nominal output to get all significant SNP-gene pairs."
 )
 parser.add_argument("perm_file", help="tensorQTL perm file (*.cis_qtl.txt.gz)")
 parser.add_argument("nom_prefix", help="prefix to nominal parquet files (e.g. {prefix}.cis_qtl_pairs.1.parquet)")
 parser.add_argument("output", help="output file (TSV)")
 parser.add_argument("--groups", required=False, help="File with phenotype groups if phenotypes are grouped.")
+parser.add_argument("--fdr", required=False, type=float, help="FDR threshold for QTLs. Only pairs for phenotypes (or phenotype groups if grouped) with FDR-significant QTLs will be included.")
 args = parser.parse_args()
 
 perm = pd.read_csv(args.perm_file, sep="\t")
+if args.fdr is not None:
+    perm = perm.loc[perm.qval <= args.fdr, :]
 # cutoff = {}
 # for i in range(perm.shape[0]):
 #     cutoff[perm.phenotype_id[i]] = perm.pval_nominal_threshold[i]

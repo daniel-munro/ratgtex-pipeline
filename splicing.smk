@@ -229,6 +229,7 @@ rule tensorqtl_all_signif_splice:
             {input.perm} \
             {params.nom_prefix} \
             {output} \
-            --groups {input.groups}
+            --groups {input.groups} \
+            --fdr 0.05
         """
 

@@ -1,8 +1,9 @@
 # Test dataset
 Test:
   read_length: 100
-  fastq_path: "Test/fastq"
+  fastq_path: "rn7/Test/fastq"
   paired_end: false
+  geno_dataset: "Brain"
 
 # IL, LHb, NAcc, OFC, and PL datsets
 IL:

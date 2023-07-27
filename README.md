@@ -18,11 +18,11 @@ The main steps of the pipeline are:
 
 Snakemake automatically links the pipeline together based on input and output files. Here is how all the steps link together:
 
-![RatGTEx pipeline rulegraph](Test/rulegraph.png)
+![RatGTEx pipeline rulegraph](test/rulegraph.png)
 
 Here's a more detailed version showing the inputs and outputs:
 
-![RatGTEx pipeline filegraph](Test/filegraph.png)
+![RatGTEx pipeline filegraph](test/filegraph.png)
 
 ## Setup
 
@@ -122,14 +122,13 @@ This contains the genotypes for exon regions from the thousands of HS rats the P
 This configuration file contains parameters about the datasets and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
 
 ```yaml
-# Test dataset
-Test:
-  read_length: 100
-  fastq_path: "Test/fastq"
-  paired_end: false
-
 # IL, LHb, NAcc, OFC, and PL datsets
 IL:
+  read_length: 100
+  fastq_path: "../gpfs/fastq"
+  paired_end: false
+  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+LHb:
   read_length: 100
   fastq_path: "../gpfs/fastq"
   paired_end: false

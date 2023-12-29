@@ -61,7 +61,7 @@ top["top_simil_ID"] = [
 top["top_simil"] = simil.max(axis=1)
 top["is_correct"] = top.index == top["top_simil_ID"]
 top["next_simil_ID"] = [
-    simil.columns[np.argsort(simil.loc[sample, :])[1]] for sample in top.index
+    simil.columns[np.argsort(simil.loc[sample, :])[-2]] for sample in top.index
 ]
-top["next_simil"] = [np.sort(simil.loc[sample, :])[1] for sample in top.index]
+top["next_simil"] = [np.sort(simil.loc[sample, :])[-2] for sample in top.index]
 top.to_csv(args.out_summary, sep="\t", index_label="RNA_ID", float_format="%g")

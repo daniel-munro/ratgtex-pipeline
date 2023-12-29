@@ -105,6 +105,7 @@ rule tensorqtl_perm_splice:
     resources:
         walltime = 20,
         partition = "--partition=gpu",
+    # retries: 5
     shell:
         """
         module load cuda
@@ -134,6 +135,7 @@ rule tensorqtl_independent_splice:
     resources:
         walltime = 20,
         partition = "--partition=gpu",
+    # retries: 5
     shell:
         """
         module load cuda

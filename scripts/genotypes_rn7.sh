@@ -10,6 +10,7 @@ set -euxo pipefail
 
 BRAIN_REGION_DIR=~/bulk/br/geno_rn7
 ROUND10_VCF=~/ratgtex/geno_rn7/original/Heterogenous-stock_n15552_02222023_stitch2_QC_Sex_Het_pass_n14505.vcf.gz
+ROUND10_2_VCF=~/ratgtex/geno_rn7/original/round10_2.vcf.gz
 
 mkdir -p geno_rn7/intermediate
 
@@ -109,9 +110,36 @@ bcftools norm geno_rn7/intermediate/BLA_NAcc2_PL2.1.vcf.gz \
     -O z -o geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz
 tabix -f geno_rn7/intermediate/BLA_NAcc2_PL2.vcf.gz
 
+### Adipose_Liver ###
+echo '*** Preparing Adipose_Liver genotypes...'
+## Extract from round 10.2 genotypes. The IDs in that VCF have hyphens where the
+## IDs I've been working with have underscores, so rename them to use underscores.
+awk '{print gensub("_", "-", "g", $1) "\t" $1}' geno_rn7/intermediate/Adipose_Liver_ids.txt > geno_rn7/intermediate/Adipose_Liver_ids.rename.txt
+cut -f1 geno_rn7/intermediate/Adipose_Liver_ids.rename.txt > geno_rn7/intermediate/Adipose_Liver_ids.hyphens.txt
+plink2 --vcf $ROUND10_2_VCF \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --keep geno_rn7/intermediate/Adipose_Liver_ids.hyphens.txt \
+    --recode vcf \
+    --out geno_rn7/intermediate/Adipose_Liver.1
+bgzip geno_rn7/intermediate/Adipose_Liver.1.vcf
+bcftools reheader \
+    geno_rn7/intermediate/Adipose_Liver.1.vcf.gz \
+    --samples geno_rn7/intermediate/Adipose_Liver_ids.rename.txt \
+    --output geno_rn7/intermediate/Adipose_Liver.2.vcf.gz
+bcftools norm geno_rn7/intermediate/Adipose_Liver.2.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/intermediate/Adipose_Liver.vcf.gz
+tabix -f geno_rn7/intermediate/Adipose_Liver.vcf.gz
+
 ### Final processing ###
-# for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
-for DSET in IL_LHb_NAcc_OFC_PL; do
+for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
+# for DSET in Adipose_Liver; do
     echo "*** Final processing: $DSET..."
     bcftools view geno_rn7/intermediate/$DSET.vcf.gz \
         --min-alleles 2 \
@@ -138,6 +166,7 @@ bcftools merge \
     geno_rn7/intermediate/Brain.vcf.gz \
     geno_rn7/intermediate/Eye.vcf.gz \
     geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz \
+    geno_rn7/intermediate/Adipose_Liver.vcf.gz \
     -Ou | bcftools view \
     --drop-genotypes \
     -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno_rn7/alleles.txt.gz
@@ -148,9 +177,22 @@ plink2 --vcf $ROUND10_VCF \
     --extract bed1 geno_rn7/intermediate/all_rats_exon_regions.tsv \
     --set-all-var-ids 'chr@:#' \
     --recode vcf \
+    --out geno_rn7/intermediate/all_rats_exons.round10
+bgzip geno_rn7/intermediate/all_rats_exons.round10.vcf
+bcftools annotate geno_rn7/intermediate/all_rats_exons.round10.vcf.gz \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/all_rats_exons.round10.vcf.gz
+tabix -f geno_rn7/all_rats_exons.round10.vcf.gz
+zcat geno_rn7/all_rats_exons.round10.vcf.gz | grep -v '^#' | cut -f3 > geno_rn7/all_rats_exons.round10.snps.txt
+
+plink2 --vcf $ROUND10_2_VCF \
+    --extract bed1 geno_rn7/intermediate/all_rats_exon_regions.tsv \
+    --set-all-var-ids 'chr@:#' \
+    --recode vcf \
     --out geno_rn7/intermediate/all_rats_exons
 bgzip geno_rn7/intermediate/all_rats_exons.vcf
 bcftools annotate geno_rn7/intermediate/all_rats_exons.vcf.gz \
     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
     -O z -o geno_rn7/all_rats_exons.vcf.gz
 tabix -f geno_rn7/all_rats_exons.vcf.gz
+zcat geno_rn7/all_rats_exons.vcf.gz | grep -v '^#' | cut -f3 > geno_rn7/all_rats_exons.snps.txt

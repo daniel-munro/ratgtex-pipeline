@@ -35,8 +35,7 @@ include: "splicing.smk"
 # TISSUES = ["BLA", "NAcc2", "PL2"]
 # TISSUES = ["Brain"]
 # TISSUES = ["Adipose", "Liver"]
-# TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
-TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Brain"]
+TISSUES = ["IL", "LHb", "NAcc", "OFC", "PL", "Eye", "BLA", "NAcc2", "PL2", "Adipose", "Liver", "Brain"]
 rule all:
     """List any files here that you want to generate by default
     (i.e. without having to specify on command line when running snakemake).
@@ -148,6 +147,7 @@ rule tensorqtl_perm:
     resources:
         walltime = 20,
         partition = "--partition=gpu",
+    # retries: 5
     shell:
         """
         module load cuda
@@ -175,6 +175,7 @@ rule tensorqtl_independent:
     resources:
         walltime = 20,
         partition = "--partition=gpu",
+    # retries: 5
     shell:
         """
         module load cuda

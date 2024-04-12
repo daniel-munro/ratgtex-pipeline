@@ -78,3 +78,20 @@ Brain:
   fastq_path: "../bulk/wb/fastq"
   paired_end: true
   geno_dataset: "Brain"
+
+# NAcc3, PL3, and VTA dataset
+NAcc3:
+  read_length: 151
+  fastq_path: "../bulk/p50_hao_chen_2020_rnaseq/data/fastq"
+  paired_end: true
+  geno_dataset: "NAcc3_PL3_VTA"
+PL3:
+  read_length: 151
+  fastq_path: "../bulk/p50_hao_chen_2020_rnaseq/data/fastq"
+  paired_end: true
+  geno_dataset: "NAcc3_PL3_VTA"
+VTA:
+  read_length: 151
+  fastq_path: "../bulk/p50_hao_chen_2020_rnaseq/data/fastq"
+  paired_end: true
+  geno_dataset: "NAcc3_PL3_VTA"

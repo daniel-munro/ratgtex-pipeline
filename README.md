@@ -42,10 +42,11 @@ Install these packages using conda, e.g. `conda install snakemake`, or pip if in
 - plink2=2
 - pandas
 - bx-python
+- scipy
 
 For QC:
 - bcftools
-- gatk
+- gatk4
 
 For tensorQTL:
 - tensorqtl (pip)

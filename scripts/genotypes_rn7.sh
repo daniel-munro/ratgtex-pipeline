@@ -9,8 +9,8 @@ set -euxo pipefail
 #    it keeps the SNP and just replaces the REF allele. But we shouldn't trust those genotypes.
 
 BRAIN_REGION_DIR=~/bulk/br/geno_rn7
-ROUND10_VCF=~/ratgtex/geno_rn7/original/Heterogenous-stock_n15552_02222023_stitch2_QC_Sex_Het_pass_n14505.vcf.gz
-ROUND10_2_VCF=~/ratgtex/geno_rn7/original/round10_2.vcf.gz
+ROUND10_VCF=geno_rn7/original/Heterogenous-stock_n15552_02222023_stitch2_QC_Sex_Het_pass_n14505.vcf.gz
+ROUND10_2_VCF=geno_rn7/original/round10_2.vcf.gz
 
 mkdir -p geno_rn7/intermediate
 
@@ -137,6 +137,26 @@ bcftools norm geno_rn7/intermediate/Adipose_Liver.2.vcf.gz \
     -O z -o geno_rn7/intermediate/Adipose_Liver.vcf.gz
 tabix -f geno_rn7/intermediate/Adipose_Liver.vcf.gz
 
+### RMTg ###
+echo '*** Preparing RMTg genotypes...'
+## On TSCC: bcftools view /tscc/projects/ps-palmer/hs_rats/round10_4/genotypes/round10_4.vcf.gz --samples-file rat_ids.txt -Oz -o jhou_rmtg.vcf.gz
+plink2 --vcf geno_rn7/original/jhou_rmtg.vcf.gz \
+    --chr 1-20 \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --recode vcf \
+    --out geno_rn7/intermediate/RMTg.1
+bgzip geno_rn7/intermediate/RMTg.1.vcf
+bcftools norm geno_rn7/intermediate/RMTg.1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/intermediate/RMTg.vcf.gz
+tabix -f geno_rn7/intermediate/RMTg.vcf.gz
+
 ### Final processing ###
 for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
 # for DSET in Adipose_Liver; do
@@ -145,7 +165,7 @@ for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
         --min-alleles 2 \
         --max-alleles 2 \
         --types snps \
-        --targets "^Y,MT" \
+        --targets "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20" \
         -O z -o geno_rn7/$DSET.tmp.vcf.gz
     # Reheader to remove confusing extra info:
     cp geno_rn7/header.txt geno_rn7/header.tmp.txt

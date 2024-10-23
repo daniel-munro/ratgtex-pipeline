@@ -8,34 +8,34 @@ Test:
 # IL, LHb, NAcc, OFC, and PL datsets
 IL:
   read_length: 100
-  fastq_path: "../gpfs/fastq"
+  fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   paired_end: false
   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 LHb:
   read_length: 100
-  fastq_path: "../gpfs/fastq"
+  fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   paired_end: false
   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 NAcc:
   read_length: 100
-  fastq_path: "../gpfs/fastq"
+  fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   paired_end: false
   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 OFC:
   read_length: 100
-  fastq_path: "../gpfs/fastq"
+  fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   paired_end: false
   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 PL:
   read_length: 100
-  fastq_path: "../gpfs/fastq"
+  fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   paired_end: false
   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 
 # Eye dataset
 Eye:
   read_length: 150
-  fastq_path: "../bulk/eye/fastq"
+  fastq_path: "fastq/Eye"
   paired_end: true
   geno_dataset: "Eye"
 
@@ -46,29 +46,29 @@ Eye:
 # paired_end to false below.
 BLA:
   read_length: 100
-  fastq_path: "../bulk/sm/fastq"
+  fastq_path: "fastq/BLA_NAcc2_PL2"
   paired_end: true
   geno_dataset: "BLA_NAcc2_PL2"
 NAcc2:
   read_length: 100
-  fastq_path: "../bulk/sm/fastq"
+  fastq_path: "fastq/BLA_NAcc2_PL2"
   paired_end: true
   geno_dataset: "BLA_NAcc2_PL2"
 PL2:
   read_length: 100
-  fastq_path: "../bulk/sm/fastq"
+  fastq_path: "fastq/BLA_NAcc2_PL2"
   paired_end: true
   geno_dataset: "BLA_NAcc2_PL2"
 
 # Adipose and Liver dataset
 Adipose:
   read_length: 76
-  fastq_path: "../bulk/fl/Raw_RNA/Fat"
+  fastq_path: "fastq/Adipose_Liver/Fat"
   paired_end: false
   geno_dataset: "Adipose_Liver"
 Liver:
   read_length: 126
-  fastq_path: "../bulk/fl/Raw_RNA/Liver"
+  fastq_path: "fastq/Adipose_Liver/Liver"
   paired_end: true
   geno_dataset: "Adipose_Liver"
 
@@ -78,3 +78,10 @@ Brain:
   fastq_path: "../bulk/wb/fastq"
   paired_end: true
   geno_dataset: "Brain"
+
+# RMTg dataset
+RMTg:
+  read_length: 151
+  fastq_path: "fastq/RMTg"
+  paired_end: true
+  geno_dataset: "RMTg"

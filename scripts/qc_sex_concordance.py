@@ -26,7 +26,9 @@ expr = pd.DataFrame(expr, columns=["TPM"])
 # Predict sex as F if TPM < cutoff, M if TPM >= cutoff:
 expr["pred"] = expr["TPM"].apply(lambda x: "F" if x < TPM_CUTOFF else "M")
 
-meta = pd.read_csv(args.meta, sep=",", index_col="sample_name")
+meta = pd.read_csv(args.meta, sep=",", dtype=str)
+meta.columns = meta.columns.str.lower()
+meta = meta.set_index("sample_name")
 meta = meta[["sex"]].rename(columns={"sex": "label"})
 # Add label column to expr from meta:
 n_samples = len(expr.index)

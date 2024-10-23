@@ -30,6 +30,10 @@ iqn = rnaseqnorm.normalize_quantiles(tpm)
 iqn = rnaseqnorm.inverse_normal_transform(iqn)
 
 anno = read_gtf(args.annotations)
+# Newer versions return a polars DF by default, but not all versions allow
+# return type to be specified, so this handles older and newer versions:
+if type(anno).__module__ == 'polars.dataframe.frame':
+    anno = anno.to_pandas()
 anno = anno.loc[anno["feature"] == "gene", :]
 anno["tss"] = np.where(anno["strand"] == "+", anno["start"], anno["end"])
 anno["start"] = anno["tss"] - 1  # BED coordinates are 0-based
@@ -50,7 +54,7 @@ iqn = anno.merge(iqn.reset_index(), on="gene_id", how="inner")
 iqnfilt = anno.merge(iqnfilt.reset_index(), on="gene_id", how="inner")
 
 iqnfilt = iqnfilt.loc[iqnfilt["#chr"].isin([str(i) for i in range(1, 21)]), :]
-iqnfilt["#chr"] = iqnfilt["#chr"].astype(int)  # for sorting
+iqnfilt["#chr"] = iqnfilt["#chr"].astype(str).astype(int)  # for sorting. In some versions chr is loaded as categorical and must be converted to str first
 iqnfilt = iqnfilt.sort_values(["#chr", "start"])
 
 log2.to_csv(f"{args.out_prefix}.log2.bed", sep="\t", index=False, float_format="%g")

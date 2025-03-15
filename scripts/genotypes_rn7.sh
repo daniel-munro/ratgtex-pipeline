@@ -157,8 +157,34 @@ bcftools norm geno_rn7/intermediate/RMTg.1.vcf.gz \
     -O z -o geno_rn7/intermediate/RMTg.vcf.gz
 tabix -f geno_rn7/intermediate/RMTg.vcf.gz
 
+### IL_LHb_NAcc_OFC_PL + BLA_NAcc2_PL2 ###
+# Merge these two datasets to run same-tissue datasets together (i.e. for NAcc and PL).
+# Don't use 30x genotypes for IL_LHb_NAcc_OFC_PL because any extra SNPs will be missing from the other rats.
+echo '*** Preparing IL_LHb_NAcc_OFC_PL + BLA_NAcc2_PL2 genotypes...'
+bcftools query -l geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL.vcf.gz > geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_ids.txt
+cat geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_ids.txt \
+    geno_rn7/intermediate/BLA_NAcc2_PL2_ids.txt \
+    > geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2_ids.txt
+plink2 --vcf geno_rn7/original/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.vcf.gz \
+    --chr 1-20 \
+    --set-all-var-ids 'chr@:#' \
+    --fa ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    --ref-from-fa force \
+    --keep geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2_ids.txt \
+    --recode vcf \
+    --out geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.1
+bgzip geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.1.vcf
+bcftools norm geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.1.vcf.gz \
+    --rm-dup snps \
+    --check-ref x \
+    --fasta-ref ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa \
+    -Ou | bcftools annotate \
+    -x ^INFO/AC,INFO/AN,^FORMAT/GT \
+    -O z -o geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.vcf.gz
+tabix -f geno_rn7/intermediate/IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2.vcf.gz
+
 ### Final processing ###
-for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2; do
+for DSET in IL_LHb_NAcc_OFC_PL Eye Adipose_Liver Brain BLA_NAcc2_PL2 IL_LHb_NAcc_OFC_PL_BLA_NAcc2_PL2; do
 # for DSET in Adipose_Liver; do
     echo "*** Final processing: $DSET..."
     bcftools view geno_rn7/intermediate/$DSET.vcf.gz \

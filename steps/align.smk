@@ -17,7 +17,7 @@ rule star_index:
     threads: 8
     resources:
         mem_mb = 60000,
-        walltime = 4
+        runtime = '4h'
     shell:
         """
         mkdir -p {params.outdir}
@@ -53,7 +53,7 @@ def fastqs(tissue: str, rat_id: str, paired: bool) -> list:
     """Get the list of FASTQ file paths for a sample.
     If paired is True, return a list of two lists of corresponding paths.
     """
-    fastq_path = Path(config[tissue]["fastq_path"])
+    fastq_path = Path(config["tissues"][tissue]["fastq_path"])
     paths = [[], []] if paired else []
     with open(f"{RN}/{tissue}/fastq_map.txt", "r") as f:
         for line in f.read().splitlines():
@@ -73,14 +73,14 @@ def fastq_input(wildcards):
     """Get the FASTQ input file/s for a sample.
     If paired_end is True for this tissue, concatenate into one list of files.
     """
-    paired_end = config[wildcards.tissue]["paired_end"]
+    paired_end = config["tissues"][wildcards.tissue]["paired_end"]
     files = fastqs(wildcards.tissue, wildcards.rat_id, paired_end)
     return files[0] + files[1] if paired_end else files
 
 
 def fastq_param(wildcards, input):
     """Get a string listing the fastq input files, with two lists if paired_end."""
-    if config[wildcards.tissue]["paired_end"]:
+    if config["tissues"][wildcards.tissue]["paired_end"]:
         files = fastqs(wildcards.tissue, wildcards.rat_id, True)
         return " ".join([",".join(files[0]), ",".join(files[1])])
     else:
@@ -89,7 +89,7 @@ def fastq_param(wildcards, input):
 
 def read_groups(wildcards, input):
     """Include read group in BAM for MarkDuplicates (though we currently aren't using that)."""
-    paired_end = config[wildcards.tissue]["paired_end"]
+    paired_end = config["tissues"][wildcards.tissue]["paired_end"]
     n_fastqs = len(input.fastq) // 2 if paired_end else len(input.fastq)
     rgs = expand("ID:{fq} SM:{sam}", fq=range(n_fastqs), sam=wildcards.rat_id)
     return " , ".join(rgs)
@@ -98,23 +98,22 @@ def read_groups(wildcards, input):
 rule star_align:
     """Align RNA-Seq reads for a sample using STAR."""
     input:
-        # fastq = lambda w: list(fastqs.loc[fastqs["rat_id"] == w.rat_id, "path"]),
         fastq = fastq_input,
-        vcf = lambda w: f"geno_{RN}/individual/{config[w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
-        index = lambda w: f"ref_{RN}/star_index_{config[w.tissue]['read_length']}/SAindex"
+        vcf = lambda w: f"geno_{RN}/individual/{config['tissues'][w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
+        index = lambda w: f"ref_{RN}/star_index_{config['tissues'][w.tissue]['read_length']}/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.
         coord = "{rn}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
         bam = "{rn}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     params:
         fastq_list = fastq_param,
-        index_dir = lambda w: f"ref_{RN}/star_index_{config[w.tissue]['read_length']}",
+        index_dir = lambda w: f"ref_{RN}/star_index_{config['tissues'][w.tissue]['read_length']}",
         prefix = "{rn}/{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
     threads: 16
     resources:
         mem_mb = 60000,
-        walltime = 20
+        runtime = '20h'
     shell:
         """
         mkdir -p {wildcards.rn}/{wildcards.tissue}/star_out
@@ -151,41 +150,3 @@ rule index_bam:
         """
 
 
-# WASP-filtering and MarkDuplicates steps were for allele-specific expression,
-# but for now we don't need them for this pipeline.
-
-# rule filter_wasp:
-#     input:
-#         "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam"
-#     output:
-#         "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.wasp.bam"
-#     resources:
-#         cpus = 16,
-#         walltime = 6
-#     shell:
-#         """
-#         samtools view -H {input} > {output}.sam
-#         samtools view {input} | grep -v "vW:i:[2-7]" >> {output}.sam
-#         samtools view -1 {output}.sam --threads 16 > {output}
-#         rm {output}.sam
-#         """
-
-
-# rule mark_duplicates:
-#     input:
-#         "{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.wasp.bam"
-#     output:
-#         bam = "{tissue}/markdup_out/{rat_id}.bam",
-#         metrics = "{tissue}/markdup_out/{rat_id}.marked_dup_metrics.txt"
-#     shell:
-#         # MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=500
-#         """
-#         picard MarkDuplicates \
-#         I={input} \
-#         O={output.bam} \
-#         M={output.metrics} \
-#         ASSUME_SORT_ORDER=coordinate \
-#         PROGRAM_RECORD_ID=null \
-#         TMP_DIR=$TMPDIR \
-#         MAX_RECORDS_IN_RAM=2000000
-#         """

@@ -54,7 +54,7 @@ rule qc_mixups_ASEReadCounter:
     output:
         "{rn}/{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
     resources:
-        walltime = 16
+        runtime = '16h'
     shell:
         """
         mkdir -p {wildcards.rn}/{wildcards.tissue}/qc/test_snps
@@ -88,7 +88,7 @@ rule qc_mixups_compare_rna_to_vcf:
     params:
         count_dir = "{rn}/{tissue}/qc/test_snps"
     resources:
-        walltime = 4,
+        runtime = '4h',
         mem_mb = 16000
     shell:
         """
@@ -139,7 +139,7 @@ rule qc_mixups_compare_to_all_rats:
         count_dir = "{rn}/{tissue}/qc/test_snps",
         n_snps = 10000
     resources:
-        walltime = 4,
+        runtime = '4h',
         mem_mb = 32000
     shell:
         """
@@ -152,6 +152,7 @@ rule qc_mixups_compare_to_all_rats:
             --out-summary {output}
         """
 
+
 rule qc_sex_concordance:
     """Compare sex predicted from chrY gene expression to metadata labels."""
     input:
@@ -161,3 +162,5 @@ rule qc_sex_concordance:
         "{rn}/{tissue}/qc/{tissue}.sex_concordance.txt",
     shell:
         "python3 scripts/qc_sex_concordance.py {input.expr} {input.meta} {output}"
+
+

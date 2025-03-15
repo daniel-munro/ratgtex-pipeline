@@ -1,6 +1,5 @@
 localrules:
     exon_table,
-    splice_covariates,
 
 
 rule regtools_junctions:
@@ -90,7 +89,7 @@ rule splice_covariates:
         "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_pheno_pcs} {output}"
 
 
-rule tensorqtl_perm_splice:
+rule tensorqtl_cis_splice:
     input:
         geno = lambda w: multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
@@ -103,12 +102,9 @@ rule tensorqtl_perm_splice:
         geno_prefix = "{rn}/{tissue}/geno",
         outdir = "{rn}/{tissue}/splice"
     resources:
-        walltime = 20,
-        partition = "--partition=gpu",
-    # retries: 5
+        runtime = '20h',
     shell:
         """
-        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
@@ -119,7 +115,7 @@ rule tensorqtl_perm_splice:
         """
 
 
-rule tensorqtl_independent_splice:
+rule tensorqtl_cis_independent_splice:
     input:
         geno = lambda w: multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
         bed = "{rn}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
@@ -133,12 +129,9 @@ rule tensorqtl_independent_splice:
         geno_prefix = "{rn}/{tissue}/geno",
         outdir = "{rn}/{tissue}/splice"
     resources:
-        walltime = 20,
-        partition = "--partition=gpu",
-    # retries: 5
+        runtime = '20h',
     shell:
         """
-        module load cuda
         python3 scripts/run_tensorqtl.py \
             {params.geno_prefix} \
             {input.bed} \
@@ -164,12 +157,10 @@ rule tensorqtl_trans_splice:
         outdir = "{rn}/{tissue}/splice",
         out_prefix = "{tissue}_splice",
     resources:
-        walltime = 12,
-        # partition = "--partition=gpu",
+        runtime = '12h',
     shell:
         # batch_size set due to "RuntimeError: CUDA out of memory"
         # tensorQTL doesn't use group info for trans mapping
-        # module load cuda
         """
         python3 -m tensorqtl \
             {params.geno_prefix} \
@@ -183,7 +174,7 @@ rule tensorqtl_trans_splice:
         """
 
 
-rule tensorqtl_nominal_splice:
+rule tensorqtl_cis_nominal_splice:
     """Get summary statistics for all tested cis-window SNPs per gene."""
     input:
         geno = multiext("{rn}/{tissue}/geno", ".bed", ".bim", ".fam"),
@@ -198,10 +189,8 @@ rule tensorqtl_nominal_splice:
         outdir = "{rn}/{tissue}/splice/nominal",
         out_prefix = "{tissue}_splice",
     resources:
-        walltime = 12,
-        # partition = "--partition=gpu",
+        runtime = '12h',
     shell:
-        # module load cuda
         """
         mkdir -p {params.outdir}
         python3 -m tensorqtl \

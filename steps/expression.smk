@@ -31,7 +31,7 @@ rule rsem:
         paired_end_flag = lambda w: "--paired-end" if config[w.tissue]["paired_end"] else "",
     threads: 16
     resources:
-        walltime = 8
+        runtime = '8h'
     shell:
         """
         rsem-calculate-expression \

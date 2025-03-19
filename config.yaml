@@ -1,106 +1,114 @@
-# Rat genome version abbreviation, rn6 or rn7
-genome_version: "rn7"
+# RatGTEx version, e.g. "v3"
+version: "v3"
 
 # Path to reference genome fasta file ending in .fa
-ref_genome: "ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.fa"
+# I started with the RefSeq genome, GCF_015227675.2/GCF_015227675.2_mRatBN7.2_genomic.fna,
+# and replaced the chromosome accessions with `chr1`, `chr2`, etc.
+ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
 
 # Path to reference genome annotation file ending in .gtf
-ref_anno: "ref_rn7/Rattus_norvegicus.mRatBN7.2.108.gtf"
+# I started with the RefSeq annotation, GCF_015227675.2/genomic.gtf,
+# and replaced the chromosome accessions with `chr1`, `chr2`, etc. using:
+# python scripts/setup/prepare_refseq_gtf.py \
+#     ref/GCF_015227675.2/genomic.gtf \
+#     ref/GCF_015227675.2/sequence_report.tsv \
+#     ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf
+ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
 
 tissues:
-  # IL, LHb, NAcc1, OFC, and PL1 datsets
-  IL:
-    read_length: 100
-    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
-    paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
-  LHb:
-    read_length: 100
-    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
-    paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
-  NAcc1:
-    read_length: 100
-    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
-    paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
-  OFC:
-    read_length: 100
-    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
-    paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
-  PL1:
-    read_length: 100
-    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
-    paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  # # IL, LHb, NAcc1, OFC, and PL1 datsets
+  # IL:
+  #   read_length: 100
+  #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+  #   paired_end: false
+  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  # LHb:
+  #   read_length: 100
+  #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+  #   paired_end: false
+  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  # NAcc1:
+  #   read_length: 100
+  #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+  #   paired_end: false
+  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  # OFC:
+  #   read_length: 100
+  #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+  #   paired_end: false
+  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  # PL1:
+  #   read_length: 100
+  #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+  #   paired_end: false
+  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
 
-  # Eye dataset
-  Eye:
-    read_length: 150
-    fastq_path: "fastq/Eye"
-    paired_end: true
-    geno_dataset: "Eye"
+  # # Eye dataset
+  # Eye:
+  #   read_length: 150
+  #   fastq_path: "fastq/Eye"
+  #   paired_end: true
+  #   geno_dataset: "Eye"
 
-  # BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
-  # Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
-  # both single-end and paired-end files (i.e. some rows have two columns, and
-  # some have three). paired_end is unspecified so that both types can be used.
-  BLA:
-    read_length: 100
-    fastq_path: "fastq/BLA_NAcc2_PL2"
-    paired_end: true
-    geno_dataset: "BLA_NAcc2_PL2"
-  NAcc2:
-    read_length: 100
-    fastq_path: "fastq/BLA_NAcc2_PL2"
-    geno_dataset: "BLA_NAcc2_PL2"
-  PL2:
-    read_length: 100
-    fastq_path: "fastq/BLA_NAcc2_PL2"
-    paired_end: true
-    geno_dataset: "BLA_NAcc2_PL2"
+  # # BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
+  # # Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
+  # # both single-end and paired-end files (i.e. some rows have two columns, and
+  # # some have three). paired_end is unspecified so that both types can be used.
+  # BLA:
+  #   read_length: 100
+  #   fastq_path: "fastq/BLA_NAcc2_PL2"
+  #   paired_end: true
+  #   geno_dataset: "BLA_NAcc2_PL2"
+  # NAcc2:
+  #   read_length: 100
+  #   fastq_path: "fastq/BLA_NAcc2_PL2"
+  #   geno_dataset: "BLA_NAcc2_PL2"
+  # PL2:
+  #   read_length: 100
+  #   fastq_path: "fastq/BLA_NAcc2_PL2"
+  #   paired_end: true
+  #   geno_dataset: "BLA_NAcc2_PL2"
 
-  # Adipose and Liver dataset
-  Adipose:
-    read_length: 76
-    fastq_path: "fastq/Adipose_Liver/Fat"
-    paired_end: false
-    geno_dataset: "Adipose_Liver"
-  Liver:
-    read_length: 126
-    fastq_path: "fastq/Adipose_Liver/Liver"
-    paired_end: true
-    geno_dataset: "Adipose_Liver"
+  # # Adipose and Liver dataset
+  # Adipose:
+  #   read_length: 76
+  #   fastq_path: "fastq/Adipose_Liver/Fat"
+  #   paired_end: false
+  #   geno_dataset: "Adipose_Liver"
+  # Liver:
+  #   read_length: 126
+  #   fastq_path: "fastq/Adipose_Liver/Liver"
+  #   paired_end: true
+  #   geno_dataset: "Adipose_Liver"
 
-  # Whole brain hemisphere dataset
-  Brain:
-    read_length: 101
-    fastq_path: "../bulk/wb/fastq"
-    paired_end: true
-    geno_dataset: "Brain"
+  # # Whole brain hemisphere dataset
+  # Brain:
+  #   read_length: 101
+  #   fastq_path: "../bulk/wb/fastq"
+  #   paired_end: true
+  #   geno_dataset: "Brain"
 
-  # RMTg dataset
-  RMTg:
-    read_length: 151
-    fastq_path: "fastq/RMTg"
-    paired_end: true
-    geno_dataset: "RMTg"
+  # # RMTg dataset
+  # RMTg:
+  #   read_length: 151
+  #   fastq_path: "fastq/RMTg"
+  #   paired_end: true
+  #   geno_dataset: "RMTg"
 
   # NAcc3, PL3, and pVTA samples from p50_hao_chen_2020_rnaseq
   NAcc3:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    geno_dataset: "NAcc3_PL3_pVTA"
-  PL3:
-    read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA"
-    paired_end: true
-    geno_dataset: "NAcc3_PL3_pVTA"
-  pVTA:
-    read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA"
-    paired_end: true
-    geno_dataset: "NAcc3_PL3_pVTA"
+    geno_dataset: "p50_hao_chen_2020_rnaseq_278"
+  # PL3:
+  #   read_length: 151
+  #   fastq_path: "fastq/NAcc3_PL3_pVTA"
+  #   paired_end: true
+  #   geno_dataset: "NAcc3_PL3_pVTA"
+  # pVTA:
+  #   read_length: 151
+  #   fastq_path: "fastq/NAcc3_PL3_pVTA"
+  #   paired_end: true
+  #   geno_dataset: "NAcc3_PL3_pVTA"
 

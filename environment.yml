@@ -1,0 +1,26 @@
+name: ratgtex
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - bioconductor-impute
+  - plink2=2
+  - fastparquet
+  - snakemake-executor-plugin-slurm
+  - gtfparse
+  - snakemake
+  - rsem
+  - scipy
+  - tabix
+  - gatk4
+  - r-argparser
+  - bioconductor-qvalue
+  - bx-python
+  - regtools
+  - star
+  - scikit-learn
+  - rpy2
+  - pandas
+  - bcftools
+  - pip:
+    - tensorqtl

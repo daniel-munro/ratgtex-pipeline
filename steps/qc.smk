@@ -10,7 +10,7 @@ rule qc_mixups_exon_regions:
     input:
         f"{ANNO_PREFIX}.genes.gtf"
     output:
-        "ref_{rn}/exon_regions.tsv.gz"
+        "ref/exon_regions.tsv.gz"
     shell:
         """grep -v '^#' {input} | awk '$3=="exon"' | cut -f1,4,5 | gzip -c > {output}"""
 
@@ -20,17 +20,17 @@ rule qc_mixups_test_snps_vcf:
     Subset to only exon SNPs, SNPs with MAF >= 0.2, and SNPs with <10% missing values.
     """
     input:
-        vcf = lambda w: f"geno_{RN}/{config[w.tissue]['geno_dataset']}.vcf.gz",
-        vcfi = lambda w: f"geno_{RN}/{config[w.tissue]['geno_dataset']}.vcf.gz.tbi",
-        # samples = "{rn}/{tissue}/rat_ids.txt",
-        regions = "ref_{rn}/exon_regions.tsv.gz",
+        vcf = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz",
+        vcfi = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz.tbi",
+        regions = "ref/exon_regions.tsv.gz",
     output:
-        vcf = "{rn}/{tissue}/qc/test_snps.vcf.gz",
-        vcfi = "{rn}/{tissue}/qc/test_snps.vcf.gz.tbi",
+        vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
+        vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
+    params:
+        out_dir = "{version}/{tissue}/qc"
     shell:
-            # --samples-file {input.samples} \
         """
-        mkdir -p {wildcards.rn}/{wildcards.tissue}/qc
+        mkdir -p {params.out_dir}
         bcftools view {input.vcf} \
             --regions-file {input.regions} \
             -Ou | bcftools view \
@@ -47,17 +47,18 @@ rule qc_mixups_ASEReadCounter:
         ref = f"{GENOME_PREFIX}.fa",
         refi = f"{GENOME_PREFIX}.fa.fai",
         refd = f"{GENOME_PREFIX}.dict",
-        vcf = "{rn}/{tissue}/qc/test_snps.vcf.gz",
-        vcfi = "{rn}/{tissue}/qc/test_snps.vcf.gz.tbi",
-        # bam = "{rn}/{tissue}/markdup_out/{rat_id}.bam",
-        bam = "{rn}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
+        vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
+        vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
+        bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
     output:
-        "{rn}/{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
+        "{version}/{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
+    params:
+        out_dir = "{version}/{tissue}/qc/test_snps"
     resources:
         runtime = '16h'
     shell:
         """
-        mkdir -p {wildcards.rn}/{wildcards.tissue}/qc/test_snps
+        mkdir -p {params.out_dir}
         gatk ASEReadCounter \
             -R {input.ref} \
             -I {input.bam} \
@@ -78,15 +79,15 @@ rule qc_mixups_compare_rna_to_vcf:
     similarity per RNA-Seq sample to quickly check for mismatches.
     """
     input:
-        vcf = "{rn}/{tissue}/qc/test_snps.vcf.gz",
-        vcfi = "{rn}/{tissue}/qc/test_snps.vcf.gz.tbi",
-        counts = lambda w: expand("{{rn}}/{{tissue}}/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids(w.tissue)),
-        samples = "{rn}/{tissue}/rat_ids.txt",
+        vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
+        vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
+        counts = lambda w: expand("{{version}}/{{tissue}}/qc/test_snps/{rat_id}.readcounts.txt", rat_id=ids(w.tissue)),
+        samples = "{version}/{tissue}/rat_ids.txt",
     output:
-        matrix = "{rn}/{tissue}/qc/rna_to_geno_similarity.tsv",
-        summary = "{rn}/{tissue}/qc/rna_to_geno_summary.tsv",
+        matrix = "{version}/{tissue}/qc/rna_to_geno_similarity.tsv",
+        summary = "{version}/{tissue}/qc/rna_to_geno_summary.tsv",
     params:
-        count_dir = "{rn}/{tissue}/qc/test_snps"
+        count_dir = "{version}/{tissue}/qc/test_snps"
     resources:
         runtime = '4h',
         mem_mb = 16000
@@ -108,10 +109,10 @@ rule qc_mixups_compare_rna_to_vcf:
 #     input:
 #         all_rat_vcf = "geno/all_rats_exons.vcf.gz",
 #         all_rat_vcfi = "geno/all_rats_exons.vcf.gz.tbi",
-#         test_snp_vcf = "{tissue}/qc/test_snps.vcf.gz",
-#         test_snp_vcfi = "{tissue}/qc/test_snps.vcf.gz",
+#         test_snp_vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
+#         test_snp_vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
 #     output:
-#         "{tissue}/qc/test_snps.all_rats.vcf.gz"
+#         "{version}/{tissue}/qc/test_snps.all_rats.vcf.gz"
 #     shell:
 #         """
 #         bcftools view {input.all_rat_vcf} \
@@ -129,14 +130,14 @@ rule qc_mixups_compare_to_all_rats:
     in the all-rat VCF).
     """
     input:
-        vcf = "geno_{rn}/all_rats_exons.vcf.gz",
-        vcfi = "geno_{rn}/all_rats_exons.vcf.gz.tbi",
-        samples = "{rn}/{tissue}/qc/samples_without_matches.txt",
-        snps = "geno_{rn}/all_rats_exons.snps.txt",
+        vcf = "geno/all_rats_exons.vcf.gz",
+        vcfi = "geno/all_rats_exons.vcf.gz.tbi",
+        samples = "{version}/{tissue}/qc/samples_without_matches.txt",
+        snps = "geno/all_rats_exons.snps.txt",
     output:
-        "{rn}/{tissue}/qc/all_rats_summary.tsv"
+        "{version}/{tissue}/qc/all_rats_summary.tsv"
     params:
-        count_dir = "{rn}/{tissue}/qc/test_snps",
+        count_dir = "{version}/{tissue}/qc/test_snps",
         n_snps = 10000
     resources:
         runtime = '4h',
@@ -156,10 +157,10 @@ rule qc_mixups_compare_to_all_rats:
 rule qc_sex_concordance:
     """Compare sex predicted from chrY gene expression to metadata labels."""
     input:
-        expr = "{rn}/{tissue}/{tissue}.expr.tpm.bed.gz",
-        meta = "geno_{rn}/genotyping_log.csv",
+        expr = "{version}/{tissue}/{tissue}.expr.tpm.bed.gz",
+        meta = "geno/genotyping_log.csv",
     output:
-        "{rn}/{tissue}/qc/{tissue}.sex_concordance.txt",
+        "{version}/{tissue}/qc/{tissue}.sex_concordance.txt",
     shell:
         "python3 scripts/qc_sex_concordance.py {input.expr} {input.meta} {output}"
 

@@ -28,53 +28,16 @@ Here's a more detailed version showing the inputs and outputs:
 
 ### Conda environment
 
-Install conda and [add the bioconda channel](https://bioconda.github.io/user/install.html#set-up-channels).
+Install a conda-like package manager (I recomment [miniforge](https://github.com/conda-forge/miniforge)) and add the bioconda channel.
 
-Install these packages using conda, e.g. `conda install snakemake`, or pip if indicated in parentheses:
+Create the ratgtex environment:
 
-- snakemake
-- star
-- rsem
-- gtfparse
-- tabix
-- bioconductor-variantannotation
-- bioconductor-impute
-- plink2=2
-- pandas
-- bx-python
-- scipy
-
-For QC:
-- bcftools
-- gatk4
-
-For tensorQTL:
-- tensorqtl (pip)
-- rpy2
-- bioconductor-qvalue
-- fastparquet
-
-For aFC:
-- pysam
-- statsmodels
-- scikits-bootstrap
-
-For splice QTLs:
-- regtools
-- scikit-learn
-- r-argparser
-
-(There's probably more that I've forgotten.)
+```shell
+conda env create -n ratgtex --file environment.yml
+conda activate ratgtex
+```
 
 ### Other software
-
-tensorQTL is available on pip, but install from GitHub for the latest version. I think this works:
-
-```
-cd tools
-git clone git@github.com:broadinstitute/tensorqtl.git
-pip install -e tensorqtl
-```
 
 To get `aFC.py`:
 
@@ -90,50 +53,56 @@ When you run snakemake, you specify a profile that determines how steps get run.
 `~/.config/snakemake/slurm/config.yaml`:
 
 ```yaml
+executor: slurm
+default-resources:
+  runtime: "4h"
+  mem_mb: 8000
+  slurm_partition: "our-cpu-partition"
+  slurm_account: "our-cpu-account"
+set-resources:
+  tensorqtl_cis:
+    slurm_partition: "our-gpu-partition"
+    slurm_account: "our-gpu-account"
+    slurm_extra: "'--gres=gpu:1'"
+  tensorqtl_cis_independent:
+    slurm_partition: "our-gpu-partition"
+    slurm_account: "our-gpu-account"
+    slurm_extra: "'--gres=gpu:1'"
+  tensorqtl_nominal:
+    slurm_partition: "our-gpu-partition"
+    slurm_account: "our-gpu-account"
+    slurm_extra: "'--gres=gpu:1'"
+  tensorqtl_trans:
+    slurm_partition: "our-gpu-partition"
+    slurm_account: "our-gpu-account"
+    slurm_extra: "'--gres=gpu:1'"
 use-conda: true
-cluster: "sbatch -t {resources.walltime}:00:00 --mem={resources.mem_mb} -c {resources.cpus} {resources.partition} --mail-type=FAIL --mail-user=dmunro@scripps.edu"
-default-resources: [walltime=4, mem_mb=4000, cpus=1, partition=""]
-# partition should either be empty string for default or something like "--partition=gpu"
 latency-wait: 60
-cluster-cancel: scancel
 ```
 
-Resources are specified for some of the snakemake rules, which are plugged into this command and automatically submitted as cluster jobs.
-
-On TSCC, which uses TORQUE scheduling, the jobs run in the default conda environment rather than the one that is active when executing snakemake. So if you want to use an environment other than `base`, e.g. `ratgtex`, add `conda activate ratgtex` to the end of your `~/.bashrc` file. This is just a workaround since it affects which environment loads on login too, and must be modified if you want to run jobs for another project. Let me know if you find a way to either specify the environment in the Snakefile or snakemake command, or always run jobs using the active environment.
-
-### Pan-tissue input files
-
-I'll provide reference files too big for this repo in `tscc:/home/dmunro/ratgtex`, which you can copy or make symbolic links to.
-
-#### `ref_rn6/Rattus_norvegicus.Rnor_6.0.dna.toplevel.{dict,fa,fa.fai}` and `ref_rn7/Rattus_norvegicus.mRatBN7.2.dna.toplevel.{dict,fa,fa.fai}`
-
-Rat genome files from Ensembl.
-
-#### `ref_rn6/Rattus_norvegicus.Rnor_6.0.99.gtf` and `ref_rn7/Rattus_norvegicus.mRatBN7.2.108.gtf`
-
-Gene annotations from Ensembl.
-
-#### `geno_rn{6/7}/all_rats_exons.vcf.gz`
-
-This contains the genotypes for exon regions from the thousands of HS rats the Palmer Lab has collected. It is used to try to find a match for any RNA-seq samples that fail the sample mixup QC step and don't match any of the tissue's original cohort genotypes. It can be generated with `scripts/genotypes_rn{6/7}.sh`.
+This uses snakemake v8 or higher and the `snakemake-executor-plugin-slurm` plugin. The `tensorqtl` steps should be run on GPU for reasonable runtime, so they are specified by name here to override the default resources. Adjust as needed for your cluster. Additional resources are specified within some of the snakemake rules, which are passed to slurm when those jobs are submitted. Alternatively, you can run snakemake on an interactive node.
 
 #### `config.yaml`
 
-This configuration file contains parameters about the datasets and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
+This configuration file contains parameters about the datasets and reference data and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
 
 ```yaml
-# IL, LHb, NAcc, OFC, and PL datsets
-IL:
-  read_length: 100
-  fastq_path: "../gpfs/fastq"
-  paired_end: false
-  geno_dataset: "IL_LHb_NAcc_OFC_PL"
-LHb:
-  read_length: 100
-  fastq_path: "../gpfs/fastq"
-  paired_end: false
-  geno_dataset: "IL_LHb_NAcc_OFC_PL"
+genome_version: "rn7"
+ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
+ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
+
+tissues:
+  # IL, LHb, NAcc1, OFC, and PL1 datsets
+  IL:
+    read_length: 100
+    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+    paired_end: false
+    geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  LHb:
+    read_length: 100
+    fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
+    paired_end: false
+    geno_dataset: "IL_LHb_NAcc_OFC_PL"
 ...
 ```
 
@@ -143,22 +112,22 @@ Some of these are inherent to the data, while others, e.g. `fastq_path`, may nee
 
 #### FASTQ files
 
-The FASTQ files can be in any accessible location. Currently only single-read RNA-Seq is implemented, but paired-end will also be supported soon.
+The RNA-seq FASTQ files can be single-read or paired-end. There can be more than one file or file pair per sample, and all will be used.
 
-#### `rn{6/7}/{tissue}/fastq_map.txt`
+#### `{version}/{tissue}/fastq_map.txt`
 
 A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. Or, for paired-end reads, each row contains the first FASTQ path, second FASTQ path, and rat ID per file pair.
 - If multiple files map to the same ID, i.e. the ID appears in multiple rows, reads from those files will be aligned into one BAM file.
 - You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
-- Any listed files whose rat IDs are not in `rn{6/7}/{tissue}/rat_ids.txt` will be ignored.
+- Any listed files whose rat IDs are not in `{version}/{tissue}/rat_ids.txt` will be ignored.
 
-#### `rn{6/7}/{tissue}/rat_ids.txt`
+#### `{version}/{tissue}/rat_ids.txt`
 
 A file listing the rat IDs for the dataset, one per line. This list determines which samples are included in the processing.
 
-#### `geno_rn{6/7}/{dataset}.vcf.gz`
+#### `geno/{dataset}.vcf.gz`
 
-A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/genotypes_rn{6/7}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/setup/genotypes_rn{6/7}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
 
 ## Running
 
@@ -168,7 +137,7 @@ Edit `config.yaml` in this directory so that the tissue(s) you want to process a
 
 #### Pre-run checks
 
-Before running Snakemake, run `python3 scripts/qc_init_check.py {rn6/rn7} {tissuename}`, which checks the input data and config for issues.
+Before running Snakemake, run `python3 scripts/qc_init_check.py {version} {tissuename}`, which checks the input data and config for issues.
 
 #### Sample mixup checks
 
@@ -177,7 +146,7 @@ The way to do sample mixup testing is to generate the mixup checking outputs usi
 - To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
-Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `rn{6/7}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `rn{6/7}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/genotypes_rn{6/7}.sh`).
+Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{version}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{version}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/setup/genotypes_rn{6/7}.sh`).
 
 ### Continue
 

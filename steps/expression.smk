@@ -4,9 +4,9 @@ rule rsem_index:
         fasta = f"{GENOME_PREFIX}.fa",
         gtf = f"{ANNO_PREFIX}.gtf"
     output:
-        "ref_{rn}/rsem_reference/rsem_reference.transcripts.fa"
+        "ref/rsem_reference/rsem_reference.transcripts.fa"
     params:
-        ref_prefix = "ref_{rn}/rsem_reference/rsem_reference",
+        ref_prefix = "ref/rsem_reference/rsem_reference",
     threads: 16
     shell:
         """
@@ -21,14 +21,14 @@ rule rsem_index:
 rule rsem:
     """Quantify expression from a BAM file."""
     input:
-        ref = "ref_{rn}/rsem_reference/rsem_reference.transcripts.fa",
-        bam = "{rn}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
+        ref = "ref/rsem_reference/rsem_reference.transcripts.fa",
+        bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
     output:
-        "{rn}/{tissue}/rsem_out/{rat_id}.genes.results.gz"
+        "{version}/{tissue}/rsem_out/{rat_id}.genes.results.gz"
     params:
-        ref_prefix = "ref_{rn}/rsem_reference/rsem_reference",
-        out_prefix = "{rn}/{tissue}/rsem_out/{rat_id}",
-        paired_end_flag = lambda w: "--paired-end" if config[w.tissue]["paired_end"] else "",
+        ref_prefix = "ref/rsem_reference/rsem_reference",
+        out_prefix = "{version}/{tissue}/rsem_out/{rat_id}",
+        paired_end_flag = lambda w: "--paired-end" if FASTQ_MAPS[w.tissue][w.rat_id][1] else "",
     threads: 16
     resources:
         runtime = '8h'
@@ -57,7 +57,7 @@ rule collapse_annotation:
     output:
         f"{ANNO_PREFIX}.genes.gtf"
     shell:
-        "python3 scripts/collapse_annotation.py {input} {output}"
+        "python3 scripts/setup/collapse_annotation.py {input} {output}"
 
 
 rule assemble_expression:
@@ -66,17 +66,17 @@ rule assemble_expression:
     version is to avoid a tensorQTL error on phenotypes with 1 nonzero value.
     """
     input:
-        rsem = lambda w: expand("{{rn}}/{{tissue}}/rsem_out/{rat_id}.genes.results.gz", rat_id=ids(w.tissue)),
-        samples = "{rn}/{tissue}/rat_ids.txt",
+        rsem = lambda w: expand("{{version}}/{{tissue}}/rsem_out/{rat_id}.genes.results.gz", rat_id=ids(w.tissue)),
+        samples = "{version}/{tissue}/rat_ids.txt",
         anno = f"{ANNO_PREFIX}.genes.gtf"
     output:
-        multiext("{rn}/{tissue}/{tissue}.expr.log2.bed", ".gz", ".gz.tbi"),
-        multiext("{rn}/{tissue}/{tissue}.expr.tpm.bed", ".gz", ".gz.tbi"),
-        multiext("{rn}/{tissue}/{tissue}.expr.iqn.bed", ".gz", ".gz.tbi"),
-        multiext("{rn}/{tissue}/{tissue}.expr.iqn.filtered.bed", ".gz", ".gz.tbi")
+        multiext("{version}/{tissue}/{tissue}.expr.log2.bed", ".gz", ".gz.tbi"),
+        multiext("{version}/{tissue}/{tissue}.expr.tpm.bed", ".gz", ".gz.tbi"),
+        multiext("{version}/{tissue}/{tissue}.expr.iqn.bed", ".gz", ".gz.tbi"),
+        multiext("{version}/{tissue}/{tissue}.expr.iqn.filtered.bed", ".gz", ".gz.tbi")
     params:
-        rsem_dir = "{rn}/{tissue}/rsem_out",
-        prefix = "{rn}/{tissue}/{tissue}.expr"
+        rsem_dir = "{version}/{tissue}/rsem_out",
+        prefix = "{version}/{tissue}/{tissue}.expr"
     shell:
         """
         python3 scripts/assemble_expression.py {params.rsem_dir} {input.samples} {input.anno} {params.prefix}

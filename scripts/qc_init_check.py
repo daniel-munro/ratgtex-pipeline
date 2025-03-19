@@ -7,7 +7,7 @@ import pysam
 import yaml
 
 parser = argparse.ArgumentParser(description="Scan raw data and setup to report stats and issues")
-parser.add_argument("version", type=str, help="Genome version, rn6 or rn7")
+parser.add_argument("version", type=str, help="RatGTEx version, e.g. v1")
 parser.add_argument("tissue", type=str, help="Tissue name")
 args = parser.parse_args()
 
@@ -24,7 +24,7 @@ geno_dataset = config["geno_dataset"]
 
 print(f"INFO: Paired-end sequencing: {paired}")
 print(f"INFO: Read length is set to {read_length} in config.yaml. Ensure this is correct.")
-print(f"INFO: Using geno_{args.version}/{geno_dataset}.vcf.gz")
+print(f"INFO: Using geno/{geno_dataset}.vcf.gz")
 
 names = ["fastq1", "fastq2", "rat_id"] if paired else ["fastq", "rat_id"]
 fastqs = pd.read_csv(f"{args.version}/{args.tissue}/fastq_map.txt", sep="\t", names=names, dtype=str)
@@ -53,7 +53,7 @@ for i in range(fastqs.shape[0]):
             raise FileNotFoundError(f"{fastq} not found")
 print("PASS: All necessary FASTQ files exist")
 
-vcf = pysam.VariantFile(f"geno_{args.version}/{geno_dataset}.vcf.gz")
+vcf = pysam.VariantFile(f"geno/{geno_dataset}.vcf.gz")
 samples = list(vcf.header.samples)
 missing = [id for id in ids if not id in samples]
 if len(missing) > 0:

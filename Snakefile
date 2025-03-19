@@ -3,7 +3,7 @@ from pathlib import Path
 
 def ids(tissue):
     """Load list of rat IDs for a tissue dataset."""
-    with open(f"{RN}/{tissue}/rat_ids.txt", "r") as f:
+    with open(f"{VERSION}/{tissue}/rat_ids.txt", "r") as f:
         return f.read().splitlines()
 
 
@@ -26,18 +26,18 @@ rule all:
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        expand("{rn}/{tissue}/qc/rna_to_geno_summary.tsv", rn=RN, tissue=TISSUES),
-        # expand("{rn}/{tissue}/qc/all_rats_summary.tsv", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/qc/{tissue}.sex_concordance.txt", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.expr.tpm.bed.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.cis_qtl.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.cis_independent_qtl.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.aFC.txt", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz", rn=RN, tissue=TISSUES),
-        expand("{rn}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", rn=RN, tissue=TISSUES),
+        expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES),
+        # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.expr.tpm.bed.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.cis_qtl.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.cis_independent_qtl.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.aFC.txt", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES),
 
 

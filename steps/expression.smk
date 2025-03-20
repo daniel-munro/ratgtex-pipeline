@@ -1,3 +1,7 @@
+localrules:
+    collapse_annotation,
+
+
 rule rsem_index:
     """Generate the index for RSEM."""
     input:

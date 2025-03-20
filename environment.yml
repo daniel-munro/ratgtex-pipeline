@@ -3,24 +3,25 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
+  - bcftools
   - bioconductor-impute
-  - plink2=2
-  - fastparquet
-  - snakemake-executor-plugin-slurm
-  - gtfparse
-  - snakemake
-  - rsem
-  - scipy
-  - tabix
-  - gatk4
-  - r-argparser
   - bioconductor-qvalue
   - bx-python
-  - regtools
-  - star
-  - scikit-learn
-  - rpy2
+  - fastparquet
+  - gatk4
+  - gtfparse
   - pandas
-  - bcftools
+  - plink2=2
+  - pysam
+  - r-argparser
+  - regtools
+  - rpy2
+  - rsem
+  - scikit-learn
+  - scipy
+  - snakemake
+  - snakemake-executor-plugin-slurm
+  - star
+  - tabix
   - pip:
     - tensorqtl

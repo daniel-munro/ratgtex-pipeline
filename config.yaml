@@ -21,34 +21,34 @@ tissues:
   #   read_length: 100
   #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   #   paired_end: false
-  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # LHb:
   #   read_length: 100
   #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   #   paired_end: false
-  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # NAcc1:
   #   read_length: 100
   #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   #   paired_end: false
-  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # OFC:
   #   read_length: 100
   #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   #   paired_end: false
-  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # PL1:
   #   read_length: 100
   #   fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
   #   paired_end: false
-  #   geno_dataset: "IL_LHb_NAcc_OFC_PL"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 
   # # Eye dataset
   # Eye:
   #   read_length: 150
   #   fastq_path: "fastq/Eye"
   #   paired_end: true
-  #   geno_dataset: "Eye"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 
   # # BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
   # # Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
@@ -58,42 +58,42 @@ tissues:
   #   read_length: 100
   #   fastq_path: "fastq/BLA_NAcc2_PL2"
   #   paired_end: true
-  #   geno_dataset: "BLA_NAcc2_PL2"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # NAcc2:
   #   read_length: 100
   #   fastq_path: "fastq/BLA_NAcc2_PL2"
-  #   geno_dataset: "BLA_NAcc2_PL2"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # PL2:
   #   read_length: 100
   #   fastq_path: "fastq/BLA_NAcc2_PL2"
   #   paired_end: true
-  #   geno_dataset: "BLA_NAcc2_PL2"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 
   # # Adipose and Liver dataset
   # Adipose:
   #   read_length: 76
   #   fastq_path: "fastq/Adipose_Liver/Fat"
   #   paired_end: false
-  #   geno_dataset: "Adipose_Liver"
+  #   geno_dataset: "ratgtex_v3_round10_4"
   # Liver:
   #   read_length: 126
   #   fastq_path: "fastq/Adipose_Liver/Liver"
   #   paired_end: true
-  #   geno_dataset: "Adipose_Liver"
+  #   geno_dataset: "ratgtex_v3_round10_4"
 
   # # Whole brain hemisphere dataset
   # Brain:
   #   read_length: 101
   #   fastq_path: "../bulk/wb/fastq"
   #   paired_end: true
-  #   geno_dataset: "Brain"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 
   # # RMTg dataset
   # RMTg:
   #   read_length: 151
   #   fastq_path: "fastq/RMTg"
   #   paired_end: true
-  #   geno_dataset: "RMTg"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 
   # NAcc3, PL3, and pVTA samples from p50_hao_chen_2020_rnaseq
   NAcc3:
@@ -105,10 +105,10 @@ tissues:
   #   read_length: 151
   #   fastq_path: "fastq/NAcc3_PL3_pVTA"
   #   paired_end: true
-  #   geno_dataset: "NAcc3_PL3_pVTA"
+  #   geno_dataset: "ratgtex_v3_round10_5"
   # pVTA:
   #   read_length: 151
   #   fastq_path: "fastq/NAcc3_PL3_pVTA"
   #   paired_end: true
-  #   geno_dataset: "NAcc3_PL3_pVTA"
+  #   geno_dataset: "ratgtex_v3_round10_5"
 

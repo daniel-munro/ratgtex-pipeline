@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Author: Francois Aguet
+# Modified by Daniel Munro for the RatGTEx pipeline to parse RefSeq GTF attributes
 import numpy as np
 import pandas as pd
 from collections import defaultdict
@@ -61,12 +62,23 @@ class Annotation:
                 strand = row[6]
 
                 attributes = defaultdict(list)
-                for a in row[8].replace('"', '').replace('_biotype', '_type').split(';')[:-1]:
-                    kv = a.strip().split(' ')
-                    if kv[0]!='tag':
-                        attributes[kv[0]] = kv[1]
+                for a in row[8].replace('_biotype', '_type').split(';')[:-1]:
+                    # Find position of first space which separates key from value
+                    a = a.strip()
+                    space_pos = a.find(' ')
+                    
+                    key = a[:space_pos]
+                    value_with_quotes = a[space_pos+1:].strip()
+                    
+                    if value_with_quotes.startswith('"') and value_with_quotes.endswith('"'):
+                        value = value_with_quotes[1:-1]  # Remove surrounding quotes
                     else:
-                        attributes['tags'].append(kv[1])
+                        value = value_with_quotes
+                        
+                    if key != 'tag':
+                        attributes[key] = value
+                    else:
+                        attributes['tags'].append(value)
 
                 if annot_type == 'gene':
                     assert 'gene_id' in attributes
@@ -81,7 +93,7 @@ class Annotation:
                     self.genes.append(g)
 
                 elif annot_type == 'transcript':
-                    assert 'transcript_id' in attributes
+                    assert 'transcript_id' in attributes, f"transcript_id not found in attributes: {row}"
                     if 'transcript_name' not in attributes:
                         attributes['transcript_name'] = attributes['transcript_id']
                     transcript_id = attributes['transcript_id']

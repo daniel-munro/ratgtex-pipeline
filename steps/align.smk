@@ -106,7 +106,7 @@ rule star_align:
     threads: 16
     resources:
         mem_mb = 60000,
-        runtime = '20h'
+        runtime = '8h'
     shell:
         """
         mkdir -p {params.out_dir}

@@ -4,18 +4,22 @@ channels:
   - conda-forge
 dependencies:
   - bcftools
-  - bioconductor-impute
-  - bioconductor-qvalue
+  - bioconductor-impute  # for covariates
+  - bioconductor-qvalue  # for tensorqtl
+  - bioconductor-snpstats  # for covariates
   - bx-python
-  - fastparquet
+  - dask<2024.2  # for tensorqtl (pandas-plink)
   - gatk4
   - gtfparse
   - pandas
+  - pandas-plink  # for tensorqtl
   - plink2=2
   - pysam
   - r-argparser
+  - r-foreach  # for leafcutter
+  - r-tidyverse
   - regtools
-  - rpy2
+  - rpy2  # for tensorqtl
   - rsem
   - scikit-learn
   - scipy
@@ -25,3 +29,4 @@ dependencies:
   - tabix
   - pip:
     - tensorqtl
+    - torch==2.3.1 # for tensorqtl

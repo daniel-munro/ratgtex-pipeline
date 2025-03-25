@@ -39,5 +39,5 @@ TISSUES = config["tissues"].keys()
 FASTQ_MAPS = {}
 for tissue in TISSUES:
     fastq_path = Path(config["tissues"][tissue]["fastq_path"])
-    paired_end = config["tissues"][tissue]["paired_end"]
+    paired_end = config["tissues"][tissue].get("paired_end", None)
     FASTQ_MAPS[tissue] = load_fastq_map(f"{VERSION}/{tissue}/fastq_map.txt", fastq_path, paired_end)

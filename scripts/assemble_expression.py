@@ -44,18 +44,35 @@ anno["#chr"] = anno["seqname"]
 anno = anno.sort_values(["#chr", "start"])
 anno = anno[["#chr", "start", "end", "gene_id"]]
 
-# Save filtered IQN file to avoid tensorQTL error on phenotypes with 1 nonzero value:
+# Save filtered IQN file to use for tensorQTL:
 iqnfilt = iqn.copy()
-iqnfilt = iqnfilt.loc[np.sum(iqnfilt > 0, axis=1) > 1, :]
+# iqnfilt = iqnfilt.loc[np.sum(iqnfilt > 0, axis=1) > 1, :]
+
+# Remove rows with more than 50% zeros, as recommended for tensorQTL:
+mostly_zeros = tpm.apply(lambda x: np.mean(x == 0) > 0.5, axis=1)
+assert tpm.index.equals(iqnfilt.index)
+iqnfilt = iqnfilt[~mostly_zeros]
+print(f"{args.out_prefix}: Removed {mostly_zeros.sum()} rows with more than 50% zeros")
+
+# Remove rows with no variation:
+no_var = iqnfilt.apply(lambda x: x.nunique() == 1, axis=1)
+iqnfilt = iqnfilt[~no_var]
+print(f"{args.out_prefix}: Removed {no_var.sum()} additional rows with no variation")
+
+# Stop if the processed table is empty:
+assert not iqnfilt.empty, f"After filtering, no phenotypes remain"
 
 log2 = anno.merge(log2.reset_index(), on="gene_id", how="inner")
 tpm = anno.merge(tpm.reset_index(), on="gene_id", how="inner")
 iqn = anno.merge(iqn.reset_index(), on="gene_id", how="inner")
 iqnfilt = anno.merge(iqnfilt.reset_index(), on="gene_id", how="inner")
 
-iqnfilt = iqnfilt.loc[iqnfilt["#chr"].isin([str(i) for i in range(1, 21)]), :]
-iqnfilt["#chr"] = iqnfilt["#chr"].astype(str).astype(int)  # for sorting. In some versions chr is loaded as categorical and must be converted to str first
-iqnfilt = iqnfilt.sort_values(["#chr", "start"])
+# Filter to keep only chr1-chr20 and sort numerically by chromosome number
+iqnfilt = iqnfilt.loc[iqnfilt["#chr"].isin([f"chr{i}" for i in range(1, 21)]), :]
+# Extract chromosome number, convert to int for proper numeric sorting
+iqnfilt["chr_num"] = iqnfilt["#chr"].str.extract(r"chr(\d+)").astype(int)
+iqnfilt = iqnfilt.sort_values(["chr_num", "start"])
+iqnfilt = iqnfilt.drop("chr_num", axis=1)
 
 log2.to_csv(f"{args.out_prefix}.log2.bed", sep="\t", index=False, float_format="%g")
 tpm.to_csv(f"{args.out_prefix}.tpm.bed", sep="\t", index=False, float_format="%g")

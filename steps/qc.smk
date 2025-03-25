@@ -55,6 +55,7 @@ rule qc_mixups_ASEReadCounter:
     params:
         out_dir = "{version}/{tissue}/qc/test_snps"
     resources:
+        mem_mb = 16000,
         runtime = '16h'
     shell:
         """

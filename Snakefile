@@ -11,6 +11,7 @@ configfile: 'config.yaml'
 # For each tissue, specify: read_length, fastq_path, paired_end, geno_dataset
 
 # These steps are short and will not be submitted as cluster jobs:
+# (Each included snakefile specifies its own localrules)
 localrules:
 
 # Alignment, quality control, and expression steps can be found in these files:

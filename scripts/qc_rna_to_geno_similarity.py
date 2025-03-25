@@ -39,6 +39,9 @@ for rec in vcf.fetch():
 
 # Make table of similarities for RNA samples vs. genotype rats
 simil = pd.DataFrame(index=samples, columns=geno_samples, dtype=float)
+# Track number of variants used for each comparison
+variant_counts = pd.DataFrame(index=samples, columns=geno_samples, dtype=int)
+
 for sample in samples:
     counts = pd.read_csv(
         args.count_dir / f"{sample}.readcounts.txt", sep="\t", index_col=2
@@ -49,6 +52,7 @@ for sample in samples:
         diff = counts.loc[snps, "frac_alt"] - [geno[geno_sam][snp] for snp in snps]
         sim = np.mean(1 - np.abs(diff))
         simil.loc[sample, geno_sam] = sim
+        variant_counts.loc[sample, geno_sam] = len(snps)
 
 simil.to_csv(args.out_matrix, sep="\t", index_label="RNA_ID", float_format="%g")
 
@@ -59,6 +63,9 @@ top["top_simil_ID"] = [
     simil.columns[np.argmax(simil.loc[sample, :])] for sample in top.index
 ]
 top["top_simil"] = simil.max(axis=1)
+top["top_variant_count"] = [
+    variant_counts.loc[sample, top.loc[sample, "top_simil_ID"]] for sample in top.index
+]
 top["is_correct"] = top.index == top["top_simil_ID"]
 top["next_simil_ID"] = [simil.loc[sample].nlargest(2).index[-1] for sample in top.index]
 top["next_simil"] = [simil.loc[sample].nlargest(2).iloc[-1] for sample in top.index]

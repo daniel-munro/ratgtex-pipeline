@@ -133,7 +133,7 @@ if __name__=='__main__':
             +' '+os.path.join(args.output_dir, args.prefix + '.leafcutter.clusters_to_genes.txt'), shell=True)
 
     print('  * filtering counts')
-    counts_df = pd.read_csv(os.path.join(args.output_dir, args.prefix+'_perind.counts.gz'), sep='\s+').set_index('chrom')
+    counts_df = pd.read_csv(os.path.join(args.output_dir, args.prefix+'_perind.counts.gz'), sep=r'\s+').set_index('chrom')
     calculate_frac = lambda x: float(x[0])/float(x[1]) if x[1]>0 else 0
     frac_df = counts_df.applymap(lambda x: calculate_frac([int(i) for i in x.split('/')]))
     pct_zero = (frac_df==0).sum(axis=1) / frac_df.shape[1]  # for zero counts, frac is zero
@@ -175,11 +175,29 @@ if __name__=='__main__':
     for f in bed_files:
         bed_df.append(pd.read_csv(f, sep='\t', dtype=str))
     bed_df = pd.concat(bed_df, axis=0)
+
     print('    ** sorting')
-    # leafcutter doesn't produce output for chrX --> numeric sort
+    # Filter to keep only autosomal chromosomes and sort numerically
+    # Check if chromosome names start with 'chr'
+    has_chr_prefix = bed_df['#Chr'].iloc[0].startswith('chr')
+    
+    # Create autosome filter
+    if has_chr_prefix:
+        autosome_filter = bed_df['#Chr'].str.match(r'chr\d+$')
+        bed_df = bed_df[autosome_filter]
+        bed_df['#Chr'] = bed_df['#Chr'].str.replace('chr', '')
+    else:
+        autosome_filter = bed_df['#Chr'].str.match(r'\d+$') 
+        bed_df = bed_df[autosome_filter]
+        
+    # Convert to int and sort
     for c in ['#Chr', 'start', 'end']:
         bed_df[c] = bed_df[c].astype(int)
     bed_df = bed_df.sort_values(['#Chr', 'start', 'end'])
+    
+    # Add chr prefix back only if it was present originally
+    if has_chr_prefix:
+        bed_df['#Chr'] = 'chr' + bed_df['#Chr'].astype(str)
     print('    ** writing BED')
     bed_file = os.path.join(args.output_dir, args.prefix+'.perind.counts.filtered.qqnorm.bed.gz')
     bgzip = subprocess.Popen('bgzip -c > '+bed_file, stdin=subprocess.PIPE, shell=True, universal_newlines=True)
@@ -190,7 +208,7 @@ if __name__=='__main__':
     print('  * converting cluster coordinates to gene coordinates')
     tss_df = gtf_to_bed(args.genes_gtf)
     cluster2gene_dict = pd.read_csv(os.path.join(args.output_dir, args.prefix + '.leafcutter.clusters_to_genes.txt'),
-        sep='\t', index_col=0, squeeze=True).to_dict()
+        sep='\t', index_col=0).squeeze().to_dict()
 
     # # add 'chr' prefix - Omit this step -DM
     # bed_df['#Chr'] = 'chr'+bed_df['#Chr'].astype(str)

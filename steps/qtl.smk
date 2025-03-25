@@ -15,6 +15,7 @@ rule vcf_to_plink:
             --maf 0.01 \
             --mac 2 \
             --max-alleles 2 \
+            --output-chr chrM \
             --out {params.prefix}
         """
 
@@ -26,28 +27,27 @@ rule prune_for_covar:
     input:
         multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam")
     output:
-        "{version}/{tissue}/covar/geno.vcf.gz"
+        multiext("{version}/{tissue}/covar/geno_pruned", ".bed", ".bim", ".fam"),
     params:
-        prefix = "{version}/{tissue}/geno",
+        geno_prefix = "{version}/{tissue}/geno",
         pruned_dir = "{version}/{tissue}/covar",
-        pruned_prefix = "{version}/{tissue}/covar/geno"
+        pruned_prefix = "{version}/{tissue}/covar/geno_pruned"
     shell:
-        # --geno 0.05 filters variants with >5% missing values (the rest will be imputed)
-        # Updated to --geno 0.00 due to cases where one or a few samples have many fewer genotyped
-        # SNPs (e.g. using different genotyping methods). Without subsetting to shared SNPs, those
-        # samples couldn't be imputed later due to having so many missing values.
+        # --geno 0.05 filters variants with >5% missing values (the rest will be imputed).
+        # Default is 0 so that samples with many more genotyped variants than others don't
+        # result in other samples having mostly missing values after pruning.
         """
         mkdir -p {params.pruned_dir}
         plink2 \
-            --bfile {params.prefix} \
+            --bfile {params.geno_prefix} \
             --geno 0.00 \
             --maf 0.05 \
             --indep-pairwise 200 100 0.1 \
             --out {params.pruned_prefix}
         plink2 \
-            --bfile {params.prefix} \
+            --bfile {params.geno_prefix} \
             --extract {params.pruned_prefix}.prune.in \
-            --export vcf bgz id-paste=iid \
+            --make-bed \
             --out {params.pruned_prefix}
         """
 
@@ -55,15 +55,18 @@ rule prune_for_covar:
 rule covariates:
     """Compute genotype and expression PCs and combine."""
     input:
-        vcf = "{version}/{tissue}/covar/geno.vcf.gz",
+        geno = multiext("{version}/{tissue}/covar/geno_pruned", ".bed", ".bim", ".fam"),
         bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
     output:
-        "{version}/{tissue}/covar.txt"
+        covar = "{version}/{tissue}/covar.txt"
     params:
+        pruned_prefix = "{version}/{tissue}/covar/geno_pruned",
         n_geno_pcs = 5,
         n_expr_pcs = 20
+    resources:
+        mem_mb = 16000,
     shell:
-        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output}"
+        "Rscript scripts/covariates.R {params.pruned_prefix} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output.covar}"
 
 
 rule tensorqtl_cis:

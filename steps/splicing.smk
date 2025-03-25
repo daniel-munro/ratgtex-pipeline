@@ -19,7 +19,7 @@ rule regtools_junctions:
             -a 8 \
             -m 50 \
             -M 500000 \
-            -s 0 \
+            -s XS \
             -o {params.intermediate} \
             {input.bam}
         gzip {params.intermediate}
@@ -78,15 +78,16 @@ rule splice_bed:
 rule splice_covariates:
     """Compute genotype and splicing PCs and combine."""
     input:
-        vcf = "{version}/{tissue}/covar/geno.vcf.gz",
+        geno = multiext("{version}/{tissue}/covar/geno_pruned", ".bed", ".bim", ".fam"),
         bed = "{version}/{tissue}/splice/{tissue}.leafcutter.bed.gz",
     output:
-        "{version}/{tissue}/splice/{tissue}.covar_splice.txt"
+        covar = "{version}/{tissue}/splice/{tissue}.covar_splice.txt"
     params:
+        pruned_prefix = "{version}/{tissue}/covar/geno_pruned",
         n_geno_pcs = 5,
         n_pheno_pcs = 10
     shell:
-        "Rscript scripts/covariates.R {input.vcf} {input.bed} {params.n_geno_pcs} {params.n_pheno_pcs} {output}"
+        "Rscript scripts/covariates.R {params.pruned_prefix} {input.bed} {params.n_geno_pcs} {params.n_pheno_pcs} {output.covar}"
 
 
 rule tensorqtl_cis_splice:

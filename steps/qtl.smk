@@ -129,12 +129,13 @@ rule tensorqtl_cis_nominal:
         bedi = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
         covar = "{version}/{tissue}/covar.txt"
     output:
-        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     params:
         geno_prefix = "{version}/{tissue}/geno",
         outdir = "{version}/{tissue}/nominal",
         out_prefix = "{tissue}",
     resources:
+        mem_mb = 32000,
         runtime = '12h',
     shell:
         """
@@ -163,7 +164,9 @@ rule tensorqtl_trans:
         outdir = "{version}/{tissue}",
         out_prefix = "{tissue}",
     resources:
+        mem_mb = lambda w, attempt: 32000 * 2**(attempt-1),
         runtime = '12h',
+    retries: 2
     shell:
         # batch_size set due to "RuntimeError: CUDA out of memory"
         """
@@ -183,7 +186,7 @@ rule tensorqtl_all_signif:
     """Extract all significant cis SNP-gene pairs."""
     input:
         perm = "{version}/{tissue}/{tissue}.cis_qtl.txt.gz",
-        nom = expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        nom = expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     output:
         "{version}/{tissue}/{tissue}.cis_qtl_signif.txt.gz"
     params:
@@ -195,7 +198,7 @@ rule tensorqtl_all_signif:
 rule tensorqtl_all_cis_pvals:
     """Extract p-values for all tested cis-window SNPs per gene."""
     input:
-        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     output:
         "{version}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz"
     params:

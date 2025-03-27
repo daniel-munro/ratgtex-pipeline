@@ -35,9 +35,16 @@ def load_fastq_map(map_file: Path, fastq_dir: Path, paired_end=None) -> dict:
 VERSION = config["version"]
 GENOME_PREFIX = config["ref_genome"].removesuffix(".fa")
 ANNO_PREFIX = config["ref_anno"].removesuffix(".gtf")
-TISSUES = config["tissues"].keys()
+TISSUES = config["run"]
 FASTQ_MAPS = {}
 for tissue in TISSUES:
-    fastq_path = Path(config["tissues"][tissue]["fastq_path"])
-    paired_end = config["tissues"][tissue].get("paired_end", None)
-    FASTQ_MAPS[tissue] = load_fastq_map(f"{VERSION}/{tissue}/fastq_map.txt", fastq_path, paired_end)
+    if tissue in config["merged_tissues"]:
+        config["tissues"][tissue] = {}
+        dsets = config["merged_tissues"][tissue]
+        geno_datasets = [config["tissues"][dset]["geno_dataset"] for dset in dsets]
+        assert len(set(geno_datasets)) == 1, f"All merged tissues must have the same geno_dataset: {tissue}"
+        config["tissues"][tissue]["geno_dataset"] = geno_datasets[0]
+    else:
+        fastq_path = Path(config["tissues"][tissue]["fastq_path"])
+        paired_end = config["tissues"][tissue].get("paired_end", None)
+        FASTQ_MAPS[tissue] = load_fastq_map(f"{VERSION}/{tissue}/fastq_map.txt", fastq_path, paired_end)

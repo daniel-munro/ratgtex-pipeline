@@ -158,6 +158,7 @@ rule tensorqtl_trans_splice:
         outdir = "{version}/{tissue}/splice",
         out_prefix = "{tissue}_splice",
     resources:
+        mem_mb = 32000,
         runtime = '12h',
     shell:
         # batch_size set due to "RuntimeError: CUDA out of memory"
@@ -184,12 +185,13 @@ rule tensorqtl_cis_nominal_splice:
         covar = "{version}/{tissue}/splice/{tissue}.covar_splice.txt",
         groups = "{version}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
     output:
-        expand("{{version}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21))
+        expand("{{version}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     params:
         geno_prefix = "{version}/{tissue}/geno",
         outdir = "{version}/{tissue}/splice/nominal",
         out_prefix = "{tissue}_splice",
     resources:
+        mem_mb = 32000,
         runtime = '12h',
     shell:
         """
@@ -209,7 +211,7 @@ rule tensorqtl_all_signif_splice:
     """Extract all significant cis SNP-gene pairs."""
     input:
         perm = "{version}/{tissue}/splice/{tissue}_splice.cis_qtl.txt.gz",
-        nom = expand("{{version}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.{chrn}.parquet", chrn=range(1, 21)),
+        nom = expand("{{version}}/{{tissue}}/splice/nominal/{{tissue}}_splice.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21)),
         groups = "{version}/{tissue}/splice/{tissue}.leafcutter.phenotype_groups.txt",
     output:
         "{version}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz",

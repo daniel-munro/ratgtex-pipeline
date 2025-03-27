@@ -15,6 +15,44 @@ ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
 #     ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf
 ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
 
+# All uncommented tissues in this list will be processed.
+# For same-tissue datasets, run scripts/setup/setup_merged_tissues.sh before or
+# after running individual datasets to set up the merged directories. After
+# running the constituent datasets fully, comment them out here and uncomment
+# the merged tissue.
+run:
+  ## Singletons:
+  - Adipose
+  - BLA
+  - Brain
+  - Eye
+  - IL
+  - LHb
+  - Liver
+  - OFC
+  - pVTA
+  - RMTg
+  ## Tissues to merge:
+  - NAcc1
+  - NAcc2
+  - NAcc3
+  - PL1
+  - PL2
+  - PL3
+  ## Merged tissues:
+  - NAcc
+  - PL
+
+merged_tissues:
+  NAcc:
+    - NAcc1
+    - NAcc2
+    - NAcc3
+  PL:
+    - PL1
+    - PL2
+    - PL3
+
 tissues:
   # IL, LHb, NAcc1, OFC, and PL1 datsets
   IL:

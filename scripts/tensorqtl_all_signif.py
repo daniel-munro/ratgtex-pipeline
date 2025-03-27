@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser(
     description="Get per-gene pval thresholds from tensorQTL cis (permutations) output, then use it to filter cis_nominal output to get all significant SNP-gene pairs."
 )
 parser.add_argument("perm_file", help="tensorQTL perm file (*.cis_qtl.txt.gz)")
-parser.add_argument("nom_prefix", help="prefix to nominal parquet files (e.g. {prefix}.cis_qtl_pairs.1.parquet)")
+parser.add_argument("nom_prefix", help="prefix to nominal parquet files (e.g. {prefix}.cis_qtl_pairs.chr1.parquet)")
 parser.add_argument("output", help="output file (TSV)")
 parser.add_argument("--groups", required=False, help="File with phenotype groups if phenotypes are grouped.")
 parser.add_argument("--fdr", required=False, type=float, help="FDR threshold for QTLs. Only pairs for phenotypes (or phenotype groups if grouped) with FDR-significant QTLs will be included.")
@@ -30,7 +30,7 @@ sig = []
 # Read each nominal file and save significant pairs.
 nom = []
 for i in range(1, 21):
-    d = ParquetFile(f"{args.nom_prefix}.cis_qtl_pairs.{i}.parquet").to_pandas()
+    d = ParquetFile(f"{args.nom_prefix}.cis_qtl_pairs.chr{i}.parquet").to_pandas()
     if "group_id" in perm.columns:
         d = d.merge(groups, how="inner", on="phenotype_id")
         d = d.merge(perm, how="inner", on="group_id")

@@ -9,6 +9,7 @@ dependencies:
   - bioconductor-snpstats  # for covariates
   - bx-python
   - dask<2024.2  # for tensorqtl (pandas-plink)
+  - fastparquet  # for tensorqtl
   - gatk4
   - gtfparse
   - pandas

@@ -87,7 +87,7 @@ This uses snakemake v8 or higher and the `snakemake-executor-plugin-slurm` plugi
 This configuration file contains parameters about the datasets and reference data and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
 
 ```yaml
-genome_version: "rn7"
+version: "v3"
 ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
 ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
 
@@ -127,7 +127,7 @@ A file listing the rat IDs for the dataset, one per line. This list determines w
 
 #### `geno/{dataset}.vcf.gz`
 
-A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/setup/genotypes_rn{6/7}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/setup/genotypes_{version}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
 
 ## Running
 
@@ -146,7 +146,7 @@ The way to do sample mixup testing is to generate the mixup checking outputs usi
 - To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
-Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{version}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{version}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/setup/genotypes_rn{6/7}.sh`).
+Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{version}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{version}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/setup/genotypes_{version}.sh`).
 
 ### Continue
 
@@ -157,6 +157,10 @@ You may want to run a subset of the heavy raw data processing steps first, then 
 `snakemake --profile slurm -j10`
 
 Use the `-n` dry run tag to make sure things seem to be set up correctly before running.
+
+### Merging same-tissue datasets
+
+Sets of samples from the same tissue, collected by different studies, can be run individually and then run as a merged dataset. These merges (e.g. NAcc1 + NAcc2 + NAcc3 = NAcc) are specified in the config. Keep the merged tissue names commented out in the `run` list at first to run the individual datasets, at least until RSEM and regtools junctions are run on all their samples. Run `scripts/setup/setup_merged_tissues.sh` to set up the merged directories, which involves symlinking to all the RSEM and regtools outputs, and merging the rat ID lists. Then, uncomment the merged tissue names in the `run` list and run them.
 
 ## Help
 

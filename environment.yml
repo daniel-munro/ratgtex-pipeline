@@ -23,10 +23,12 @@ dependencies:
   - rpy2  # for tensorqtl
   - rsem
   - scikit-learn
+  - scikits-bootstrap  # for aFC.py
   - scipy
   - snakemake
   - snakemake-executor-plugin-slurm
   - star
+  - statsmodels  # for aFC.py
   - tabix
   - pip:
     - tensorqtl

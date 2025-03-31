@@ -67,7 +67,7 @@ bcftools norm geno/intermediate/ratgtex_v3_round10_5.vcf.gz \
     -O z -o geno/ratgtex_v3_round10_5.vcf.gz
 tabix -f geno/ratgtex_v3_round10_5.vcf.gz
 
-### Get exon SNPs for all genotyped rats for sample mixup QC
+### Get exon SNPs for all genotyped rats for sample mixup QC ###
 zcat ref/exon_regions.tsv.gz | awk '$1 ~ /^chr([1-9]|1[0-9]|20)$/' > geno/intermediate/all_rats_exon_regions.tsv
 ## Then copy geno/intermediate/all_rats_exon_regions.tsv to TSCC and run:
 # plink2 --vcf /tscc/projects/ps-palmer/hs_rats/round10_5/genotypes/round10_5.vcf.gz \
@@ -86,3 +86,18 @@ zcat ref/exon_regions.tsv.gz | awk '$1 ~ /^chr([1-9]|1[0-9]|20)$/' > geno/interm
 tabix -f geno/all_rats_exons.vcf.gz
 zcat geno/all_rats_exons.vcf.gz | grep -v '^#' | cut -f3 > geno/all_rats_exons.snps.txt
 
+### Get all alleles ###
+## -m none : no new multiallelics, output multiple records instead
+## --force-samples : if the merged files contain duplicate samples names, proceed anyway
+## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
+bcftools merge \
+    -m none \
+    --force-samples \
+    geno/ratgtex_v3_round10_4.vcf.gz \
+    geno/ratgtex_v3_round10_5.vcf.gz \
+    -Ou | bcftools view \
+    --drop-genotypes \
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz
+
+### Combine genotyping logs ###
+cat geno/original/hs_rats_round10_4_n20031_20240624_genotype_log.csv <(cut -d',' -f1-36 geno/original/hs_rats_round10_5_n21864_20250227_genotype_log.csv | tail -n+2) > geno/genotyping_log.csv

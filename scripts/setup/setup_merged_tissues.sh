@@ -1,7 +1,10 @@
 set -e
 
+## fastq_map.txt are created just to provide for download
+
 mkdir -p v3/NAcc/{rsem_out,splice/junc}
 cat v3/NAcc{1,2,3}/rat_ids.txt | sort | uniq > v3/NAcc/rat_ids.txt
+cat v3/NAcc{1,2,3}/fastq_map.txt | sort | uniq > v3/NAcc/fastq_map.txt
 for tissue in NAcc1 NAcc2 NAcc3; do
     while read id; do
         ln -s ../../${tissue}/rsem_out/${id}.genes.results.gz v3/NAcc/rsem_out/
@@ -11,6 +14,7 @@ done
 
 mkdir -p v3/PL/{rsem_out,splice/junc}
 cat v3/PL{1,2,3}/rat_ids.txt | sort | uniq > v3/PL/rat_ids.txt
+cat v3/PL{1,2,3}/fastq_map.txt | sort | uniq > v3/PL/fastq_map.txt
 for tissue in PL1 PL2 PL3; do
     while read id; do
         ln -s ../../${tissue}/rsem_out/${id}.genes.results.gz v3/PL/rsem_out/

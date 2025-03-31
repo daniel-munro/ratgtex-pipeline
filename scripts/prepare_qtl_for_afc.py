@@ -17,5 +17,4 @@ d = d.drop_duplicates()
 print("pid\tsid\tsid_chr\tsid_pos")
 for row in d.to_dict(orient="records"):
     chrom, pos = row["variant_id"].split(":")
-    chrom = chrom.replace("chr", "")
     print(f"{row['phenotype_id']}\t{row['variant_id']}\t{chrom}\t{pos}")

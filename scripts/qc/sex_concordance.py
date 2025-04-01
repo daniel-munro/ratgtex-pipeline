@@ -7,17 +7,17 @@ parser = argparse.ArgumentParser(
     description="Predict sex from chrY gene expression and compare to metadata labels"
 )
 parser.add_argument("expr", type=str, help="Expression BED file with TPM values")
-parser.add_argument("meta", type=str, help="Metadata, currently expects a CSV table that includes columns 'sample_name' and 'sex'")
+parser.add_argument("meta", type=str, help="Metadata, currently expects a CSV table that includes columns 'rfid' and 'sex'")
 parser.add_argument("out", type=str, help="Output file for report summarizing sex concordance")
 args = parser.parse_args()
 
 # Cutoff for total chrY gene TPM, empirically found to predict female/male
-TPM_CUTOFF = 18
+TPM_CUTOFF = 4
 # Cap individual TPM values before summing to control for outliers
 MAX_TPM = 5
 
 expr = pd.read_csv(args.expr, sep="\t", dtype={"#chr": str})
-expr = expr.loc[expr["#chr"] == "Y"]
+expr = expr.loc[expr["#chr"] == "chrY"]
 expr = expr.drop(columns=["#chr", "start", "end", "gene_id"])
 expr = expr.clip(upper=MAX_TPM)
 expr = expr.sum(axis=0) # Sum TPM for chrY genes per sample
@@ -27,10 +27,10 @@ expr = pd.DataFrame(expr, columns=["TPM"])
 expr["pred"] = expr["TPM"].apply(lambda x: "F" if x < TPM_CUTOFF else "M")
 
 meta = pd.read_csv(args.meta, sep=",", dtype=str)
-meta.columns = meta.columns.str.lower()
-meta = meta.set_index("sample_name")
+# Keep only the last entry per sample
+meta = meta.drop_duplicates(subset=['rfid'], keep='last')
+meta = meta.set_index("rfid")
 meta = meta[["sex"]].rename(columns={"sex": "label"})
-# Add label column to expr from meta:
 n_samples = len(expr.index)
 expr = expr.join(meta, how="inner")
 

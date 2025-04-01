@@ -27,9 +27,10 @@ rule all:
     (i.e. without having to specify on command line when running snakemake).
     """
     input:
-        expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES),
-        # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/qc/{tissue}.star_stats.tsv", v=VERSION, tissue=TISSUES_SEP),
+        # expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
+        # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
+        expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
         expand("{v}/{tissue}/{tissue}.expr.tpm.bed.gz", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.cis_qtl.txt.gz", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.cis_independent_qtl.txt.gz", v=VERSION, tissue=TISSUES),

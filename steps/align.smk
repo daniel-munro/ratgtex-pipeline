@@ -96,7 +96,8 @@ rule star_align:
     output:
         # RSEM requires transcriptome-sorted BAM.
         coord = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
-        bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam"
+        bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam",
+        log = "{version}/{tissue}/star_out/{rat_id}.Log.final.out",
     params:
         fastq_list = fastq_star_param,
         index_dir = lambda w: f"ref/star_index_{config['tissues'][w.tissue]['read_length']}",

@@ -1,8 +1,8 @@
 localrules:
     qc_mixups_exon_regions,
     qc_mixups_test_snps_vcf,
-    # qc_mixups_compare_rna_to_vcf,
     qc_sex_concordance,
+    qc_star_stats,
 
 
 rule qc_mixups_exon_regions:
@@ -94,32 +94,13 @@ rule qc_mixups_compare_rna_to_vcf:
         mem_mb = 16000
     shell:
         """
-        python3 scripts/qc_rna_to_geno_similarity.py \
+        python3 scripts/qc/rna_to_geno_similarity.py \
             {input.vcf} \
             {params.count_dir} \
             {input.samples} \
             {output.matrix} \
             {output.summary}
         """
-
-
-# rule qc_mixups_test_snps_vcf_all_rats:
-#     """Get subset genotypes for all available rats for additional mixup testing.
-#     Subset to the same set of test SNPs that were counted in the RNA samples.
-#     """
-#     input:
-#         all_rat_vcf = "geno/all_rats_exons.vcf.gz",
-#         all_rat_vcfi = "geno/all_rats_exons.vcf.gz.tbi",
-#         test_snp_vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
-#         test_snp_vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
-#     output:
-#         "{version}/{tissue}/qc/test_snps.all_rats.vcf.gz"
-#     shell:
-#         """
-#         bcftools view {input.all_rat_vcf} \
-#             --targets-file {input.test_snp_vcf} \
-#             -Oz -o {output}
-#         """
 
 
 rule qc_mixups_compare_to_all_rats:
@@ -145,7 +126,7 @@ rule qc_mixups_compare_to_all_rats:
         mem_mb = 32000
     shell:
         """
-        python3 scripts/qc_rna_to_geno_all_rats.py \
+        python3 scripts/qc/rna_to_geno_all_rats.py \
             --vcf {input.vcf} \
             --count-dir {params.count_dir} \
             --samples {input.samples} \
@@ -163,6 +144,18 @@ rule qc_sex_concordance:
     output:
         "{version}/{tissue}/qc/{tissue}.sex_concordance.txt",
     shell:
-        "python3 scripts/qc_sex_concordance.py {input.expr} {input.meta} {output}"
+        "python3 scripts/qc/sex_concordance.py {input.expr} {input.meta} {output}"
 
+
+rule qc_star_stats:
+    """Parse STAR log files to get stats"""
+    input:
+        logs = lambda w: expand("{{version}}/{{tissue}}/star_out/{rat_id}.Log.final.out", rat_id=ids(w.tissue)),
+        samples = "{version}/{tissue}/rat_ids.txt",
+    output:
+        tsv = "{version}/{tissue}/qc/{tissue}.star_stats.tsv",
+    params:
+        star_dir = "{version}/{tissue}/star_out",
+    shell:
+        "python3 scripts/qc/stats_from_star_logs.py {params.star_dir} {input.samples} {output}"
 

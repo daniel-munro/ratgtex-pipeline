@@ -127,17 +127,17 @@ A file listing the rat IDs for the dataset, one per line. This list determines w
 
 #### `geno/{dataset}.vcf.gz`
 
-A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/setup/genotypes_{version}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in a tissue- or dataset-specific config file as described below.
+A VCF file containing the genotypes for one or more tissues. If multiple tissues came from the same project and have overlapping sets of individuals, they use the same VCF file. These are created using `scripts/setup/genotypes_{version}.sh`, which ensures that REF alleles match the reference genome and that the VCFs are otherwise compatible with the pipeline. Specify the dataset name in the pipeline config file as described below.
 
 ## Running
 
-Edit `config.yaml` in this directory so that the tissue(s) you want to process are present and have correct parameters. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissues/datasets such as read length and directory where FASTQ files can be found.
+Edit `config.yaml` in this directory so that the tissue(s) you want to process are present in the `tissues` section with correct parameters, and are listed in the `run` section. Unlike the Snakemake config file, which specifies how jobs are run, this one contains parameters for the tissues/datasets such as read length and directory where FASTQ files can be found.
 
 ### QC
 
 #### Pre-run checks
 
-Before running Snakemake, run `python3 scripts/qc_init_check.py {version} {tissuename}`, which checks the input data and config for issues.
+Before running Snakemake, run `python3 scripts/setup/init_check.py {version} {tissue}`, which checks the input data and config for issues.
 
 #### Sample mixup checks
 

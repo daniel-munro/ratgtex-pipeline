@@ -1,152 +1,175 @@
-# RatGTEx version, e.g. "v3"
-version: "v3"
+## RatGTEx version, e.g. "v4"
+version: "v4"
 
-# Path to reference genome fasta file ending in .fa
-# I started with the RefSeq genome, GCF_015227675.2/GCF_015227675.2_mRatBN7.2_genomic.fna,
-# and replaced the chromosome accessions with `chr1`, `chr2`, etc.
-ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
+## Path to reference genome fasta file ending in .fa
+## I downloaded the FASTA and GTF from RefSeq and converted chromosome names:
+## python3 ../scripts/setup/prepare_refseq.py \
+##     --map sequence_report.tsv \
+##     --gtf-in GCF_036323735.1_GRCr8_genomic.gtf \
+##     --gtf-out GCF_036323735.1_GRCr8_genomic.chr.gtf \
+##     --fasta-in GCF_036323735.1_GRCr8_genomic.fna \
+##     --fasta-out GCF_036323735.1_GRCr8_genomic.chr.fa
+ref_genome: "ref/GCF_036323735.1_GRCr8_genomic.chr.fa"
 
-# Path to reference genome annotation file ending in .gtf
-# I started with the RefSeq annotation, GCF_015227675.2/genomic.gtf,
-# and replaced the chromosome accessions with `chr1`, `chr2`, etc. using:
-# python scripts/setup/prepare_refseq_gtf.py \
-#     ref/GCF_015227675.2/genomic.gtf \
-#     ref/GCF_015227675.2/sequence_report.tsv \
-#     ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf
-ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
+## Path to reference genome annotation file ending in .gtf
+ref_anno: "ref/GCF_036323735.1_GRCr8_genomic.chr.gtf"
 
-# All uncommented tissues in this list will be processed.
-# For same-tissue datasets, run scripts/setup/setup_merged_tissues.sh before or
-# after running individual datasets to set up the merged directories. After
-# running the constituent datasets fully, comment them out here and uncomment
-# the merged tissue.
+## All uncommented tissues in this list will be processed.
+## For same-tissue datasets, run scripts/setup/setup_merged_tissues.sh before or
+## after running individual datasets to set up the merged directories. After
+## running the constituent datasets fully, comment them out here and uncomment
+## the merged tissue.
 run:
   ## Singletons:
   - Adipose
   - BLA
   - Brain
   - Eye
+  - IC
   - IL
   - LHb
   - Liver
   - OFC
-  - pVTA
   - RMTg
   ## Tissues to merge:
   - NAcc1
   - NAcc2
   - NAcc3
+  - NAcc4
   - PL1
   - PL2
   - PL3
+  - pVTA1
+  - pVTA2
   ## Merged tissues:
   - NAcc
   - PL
+  - pVTA
 
 merged_tissues:
   NAcc:
     - NAcc1
     - NAcc2
     - NAcc3
+    - NAcc4
   PL:
     - PL1
     - PL2
     - PL3
+  pVTA:
+    - pVTA1
+    - pVTA2
 
 tissues:
-  # IL, LHb, NAcc1, OFC, and PL1 datsets
+  ## IL, LHb, NAcc1, OFC, and PL1 datsets
   IL:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   LHb:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   NAcc1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   OFC:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   PL1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # Eye dataset
+  ## Eye dataset
   Eye:
     read_length: 150
     fastq_path: "fastq/Eye"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
-  # Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
-  # both single-end and paired-end files (i.e. some rows have two columns, and
-  # some have three). paired_end is unspecified so that both types can be used.
+  ## BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
+  ## Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
+  ## both single-end and paired-end files (i.e. some rows have two columns, and
+  ## some have three). paired_end is unspecified so that both types can be used.
   BLA:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   NAcc2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   PL2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # Adipose and Liver dataset
+  ## Adipose and Liver dataset
   Adipose:
     read_length: 76
     fastq_path: "fastq/Adipose_Liver/Fat"
     paired_end: false
-    geno_dataset: "ratgtex_v3_round10_4"
+    geno_dataset: "ratgtex_v4_round11_1"
   Liver:
     read_length: 126
     fastq_path: "fastq/Adipose_Liver/Liver"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_4"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # Whole brain hemisphere dataset
+  ## Whole brain hemisphere dataset
   Brain:
     read_length: 101
     fastq_path: "fastq/Brain"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # RMTg dataset
+  ## RMTg dataset
   RMTg:
     read_length: 151
     fastq_path: "fastq/RMTg"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
-  # NAcc3, PL3, and pVTA samples from p50_hao_chen_2020_rnaseq
+  ## NAcc3, PL3, and pVTA1 samples from p50_hao_chen_2020_rnaseq
   NAcc3:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA"
+    fastq_path: "fastq/NAcc3_PL3_pVTA1"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
   PL3:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA"
+    fastq_path: "fastq/NAcc3_PL3_pVTA1"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
-  pVTA:
+    geno_dataset: "ratgtex_v4_round11_1"
+  pVTA1:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA"
+    fastq_path: "fastq/NAcc3_PL3_pVTA1"
     paired_end: true
-    geno_dataset: "ratgtex_v3_round10_5"
+    geno_dataset: "ratgtex_v4_round11_1"
 
+  ## IC, NAcc4, and pVTA2 samples from p50_paul_meyer_2020_rnaseq
+  IC:
+    read_length: 151
+    fastq_path: "fastq/IC_NAcc4_pVTA2"
+    paired_end: true
+    geno_dataset: "ratgtex_v4_round11_1"
+  NAcc4:
+    read_length: 151
+    fastq_path: "fastq/IC_NAcc4_pVTA2"
+    paired_end: true
+    geno_dataset: "ratgtex_v4_round11_1"
+  pVTA2:
+    read_length: 151
+    fastq_path: "fastq/IC_NAcc4_pVTA2"
+    paired_end: true
+    geno_dataset: "ratgtex_v4_round11_1"

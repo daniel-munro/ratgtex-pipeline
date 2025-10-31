@@ -2,25 +2,34 @@ import csv
 import argparse
 
 
-def load_mapping(mapping_file: str) -> dict:
-    """Load mapping from RefSeq accession to common chromosome name.
+def load_mapping(mapping_file: str) -> tuple[dict[str, str], set[str]]:
+    """Load mapping from RefSeq accession to common chromosome name,
+    and collect accessions whose Role == 'assembled-molecule'.
 
     The mapping file is expected to be a TSV with headers including:
       - "RefSeq seq accession"
       - "Sequence name"
+      - "Role"
     """
     mapping: dict[str, str] = {}
+    allowed_accessions: set[str] = set()
     with open(mapping_file) as seq_file:
         reader = csv.DictReader(seq_file, delimiter="\t")
         for row in reader:
-            refseq_acc = row.get("RefSeq seq accession")
-            seq_name = row.get("Sequence name")
-            mapping[refseq_acc] = seq_name
-    return mapping
+            refseq_acc = (row.get("RefSeq seq accession") or "").strip()
+            seq_name = (row.get("Sequence name") or "").strip()
+            role = (row.get("Role") or "").strip().lower()
+            if refseq_acc:
+                if seq_name:
+                    mapping[refseq_acc] = seq_name
+                if role == "assembled-molecule":
+                    allowed_accessions.add(refseq_acc)
+    return mapping, allowed_accessions
 
 
-def process_gtf(input_gtf: str, output_gtf: str, mapping: dict) -> None:
-    """Update the first column (seqname) of a GTF using the provided mapping."""
+def process_gtf(input_gtf: str, output_gtf: str, mapping: dict, allowed_accessions: set[str]) -> None:
+    """Update the first column (seqname) using the mapping, keeping only
+    rows whose RefSeq accession has Role == 'assembled-molecule'."""
     with open(input_gtf) as gtf_in, open(output_gtf, "w") as gtf_out:
         for line in gtf_in:
             # Pass through header/comment lines unchanged
@@ -30,9 +39,13 @@ def process_gtf(input_gtf: str, output_gtf: str, mapping: dict) -> None:
             fields = line.rstrip("\n").split("\t")
             if not fields:
                 continue
+            # Filter: keep only annotations whose seqname (RefSeq accession) is assembled-molecule
+            refseq_acc = fields[0]
+            if refseq_acc not in allowed_accessions:
+                continue
             # Replace the chromosome ID if found in our mapping
-            if fields[0] in mapping:
-                fields[0] = mapping[fields[0]]
+            if refseq_acc in mapping:
+                fields[0] = mapping[refseq_acc]
             gtf_out.write("\t".join(fields) + "\n")
 
 
@@ -69,8 +82,8 @@ def main():
     
     args = parser.parse_args()
 
-    mapping = load_mapping(args.map)
-    process_gtf(args.gtf_in, args.gtf_out, mapping)
+    mapping, allowed_accessions = load_mapping(args.map)
+    process_gtf(args.gtf_in, args.gtf_out, mapping, allowed_accessions)
     if args.fasta_in and args.fasta_out:
         process_fasta(args.fasta_in, args.fasta_out, mapping)
 

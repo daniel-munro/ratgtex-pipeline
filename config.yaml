@@ -21,14 +21,12 @@ ref_anno: "ref/GCF_036323735.1_GRCr8_genomic.chr.gtf"
 ## the merged tissue.
 run:
   ## Singletons:
-  - Adipose
   - BLA
   - Brain
   - Eye
   - IC
   - IL
   - LHb
-  - Liver
   - OFC
   - RMTg
   ## Tissues to merge:
@@ -143,17 +141,17 @@ tissues:
   ## NAcc3, PL3, and pVTA1 samples from p50_hao_chen_2020_rnaseq
   NAcc3:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA1"
+    fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
     geno_dataset: "ratgtex_v4_round11_1"
   PL3:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA1"
+    fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
     geno_dataset: "ratgtex_v4_round11_1"
   pVTA1:
     read_length: 151
-    fastq_path: "fastq/NAcc3_PL3_pVTA1"
+    fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
     geno_dataset: "ratgtex_v4_round11_1"
 

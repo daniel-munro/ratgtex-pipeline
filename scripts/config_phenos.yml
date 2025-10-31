@@ -1,0 +1,58 @@
+### Raw RNA-Seq data
+paired_end: True
+read_length: 101
+fastq_dir: ../fastq
+fastq_map: ../fastq_map.txt
+## If paired_end is False, kallisto requires estimated fragment (NOT read) length and standard deviation:
+# fragment_length_mean: 200
+# fragment_length_sd: 50
+
+### Reference files
+## Download and unzip genome, e.g. http://ftp.ensembl.org/pub/release-106/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+ref_genome: ../../../ref/GCF_036323735.1_GRCr8_genomic.chr.fa
+## Download and unzip gene annotations, e.g. http://ftp.ensembl.org/pub/release-106/gtf/homo_sapiens/Homo_sapiens.GRCh38.106.gtf.gz
+ref_anno: ../../ref_v3/GCF_036323735.1_GRCr8_genomic.chr.gtf
+
+### Samples to include (any samples in the FASTQ map but not listed here will be ignored):
+samples_file: ../rat_ids.txt
+
+### Optional parameters
+## Path to intermediate file directory, in case you don't want it inside this project directory due to its size:
+## This directory will be created if it doesn't exist, and will contain any generated (i.e. not input) files besides the final phenotype outputs.
+# intermediate_dir: intermediate
+## Path to directory where intermediate reference files will be created:
+## This will be in the intermediate dir by default, but can be specified to be outside the project dir.
+## This could be useful if running multiple datasets with the same parameters, allowing the intermediate
+## reference files to be generated once and shared by all the dataset runs.
+intermediate_ref_dir: ../../../ref
+
+### Modality groups
+## List the modality groups to extract, with list of expected output files for each.
+## A snakefile will be loaded for each group, steps/{groupname}.smk
+## Each group represents one or more modalities that are generated from the same
+## software.
+modality_groups:
+  alt_TSS_polyA:
+    files:
+    - alt_TSS.bed.gz
+    - alt_TSS.bed.gz.tbi
+    - alt_TSS.phenotype_groups.txt
+    - alt_polyA.bed.gz
+    - alt_polyA.bed.gz.tbi
+    - alt_polyA.phenotype_groups.txt
+  expression:
+    files:
+    - expression.bed.gz
+    - expression.bed.gz.tbi
+    - isoforms.bed.gz
+    - isoforms.bed.gz.tbi
+    - isoforms.phenotype_groups.txt
+  splicing:
+    files:
+    - splicing.bed.gz
+    - splicing.bed.gz.tbi
+    - splicing.phenotype_groups.txt
+  stability:
+    files:
+    - stability.bed.gz
+    - stability.bed.gz.tbi

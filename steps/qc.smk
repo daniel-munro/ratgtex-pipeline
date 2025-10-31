@@ -91,7 +91,7 @@ rule qc_mixups_compare_rna_to_vcf:
         count_dir = "{version}/{tissue}/qc/test_snps"
     resources:
         runtime = '4h',
-        mem_mb = 16000
+        mem_mb = 32000
     shell:
         """
         python3 scripts/qc/rna_to_geno_similarity.py \
@@ -123,7 +123,7 @@ rule qc_mixups_compare_to_all_rats:
         n_snps = 10000
     resources:
         runtime = '4h',
-        mem_mb = 32000
+        mem_mb = 64000
     shell:
         """
         python3 scripts/qc/rna_to_geno_all_rats.py \

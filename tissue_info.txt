@@ -1,12 +1,10 @@
 tissueSiteDetailId	tissueSiteDetail	tissueSite	colorHex	colorRgb	dataset
-Adipose	Adipose	Adipose	17d2eb	23,210,235	ratgtex_v4_round11_1
 BLA	Basolateral amygdala	Brain	ffd700	255,215,0	ratgtex_v4_round11_1
 Brain	Brain hemisphere	Brain	75d1c0	117,209,192	ratgtex_v4_round11_1
 Eye	Eye	Eye	ff66ff	255,102,255	ratgtex_v4_round11_1
 IC	Insular cortex	Brain	9673d1	150,115,209	ratgtex_v4_round11_1
 IL	Infralimbic cortex	Brain	377eb8	55,126,184	ratgtex_v4_round11_1
 LHb	Lateral habenula	Brain	4daf4a	77,175,74	ratgtex_v4_round11_1
-Liver	Liver	Liver	c2fa82	194,250,130	ratgtex_v4_round11_1
 NAcc	Nucleus accumbens core	Brain	e41a1c	228,26,28	ratgtex_v4_round11_1
 OFC	Orbitofrontal cortex	Brain	ff7f00	255,127,0	ratgtex_v4_round11_1
 PL	Prelimbic cortex	Brain	984ea3	152,78,163	ratgtex_v4_round11_1

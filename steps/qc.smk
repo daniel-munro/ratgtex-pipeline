@@ -148,8 +148,13 @@ rule qc_sex_concordance:
 
 
 rule qc_star_stats:
-    """Parse STAR log files to get stats"""
+    """Parse STAR log files to get stats
+    
+    The .bai files are not used, but since this rule is used to conveneiently
+    generate BAM files, this will produce their .bai files too.
+    """
     input:
+        bais = lambda w: expand("{{version}}/{{tissue}}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam.bai", rat_id=ids(w.tissue)),
         logs = lambda w: expand("{{version}}/{{tissue}}/star_out/{rat_id}.Log.final.out", rat_id=ids(w.tissue)),
         samples = "{version}/{tissue}/rat_ids.txt",
     output:
@@ -159,3 +164,4 @@ rule qc_star_stats:
     shell:
         "python3 scripts/qc/stats_from_star_logs.py {params.star_dir} {input.samples} {output}"
 
+    

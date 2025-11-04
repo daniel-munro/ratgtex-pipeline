@@ -1,5 +1,26 @@
 set -e
 
+#########################
+## Prepare annotations ##
+#########################
+
+cd ref
+
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/036/323/735/GCF_036323735.1_GRCr8/GCF_036323735.1_GRCr8_genomic.fna.gz
+wget https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/036/323/735/GCF_036323735.1_GRCr8/GCF_036323735.1_GRCr8_genomic.gtf.gz
+
+gunzip GCF_036323735.1_GRCr8_genomic.fna.gz
+gunzip GCF_036323735.1_GRCr8_genomic.gtf.gz
+
+python3 ../scripts/setup/prepare_refseq.py \
+    --map sequence_report.tsv \
+    --gtf-in GCF_036323735.1_GRCr8_genomic.gtf \
+    --gtf-out GCF_036323735.1_GRCr8_genomic.chr.gtf \
+    --fasta-in GCF_036323735.1_GRCr8_genomic.fna \
+    --fasta-out GCF_036323735.1_GRCr8_genomic.chr.fa
+
+cd ..
+
 ###################
 ## Set up for QC ##
 ###################
@@ -37,23 +58,23 @@ done < tissues.dup.txt
 
 ## Link FASTQ and BAM files
 
-ln -s fastq/BLA_NAcc2_PL2 v4/BLA/fastq
-ln -s fastq/Brain v4/Brain/fastq
-ln -s fastq/Eye v4/Eye/fastq
-ln -s fastq/IC_NAcc4_pVTA2 v4/IC/fastq
-ln -s fastq/IL_LHb_NAcc_OFC_PL v4/IL/fastq
-ln -s fastq/IL_LHb_NAcc_OFC_PL v4/LHb/fastq
-ln -s fastq/IL_LHb_NAcc_OFC_PL v4/NAcc1/fastq
-ln -s fastq/BLA_NAcc2_PL2 v4/NAcc2/fastq
-ln -s fastq/NAcc3_PL3_pVTA v4/NAcc3/fastq
-ln -s fastq/IC_NAcc4_pVTA2 v4/NAcc4/fastq
-ln -s fastq/IL_LHb_NAcc_OFC_PL v4/OFC/fastq
-ln -s fastq/IL_LHb_NAcc_OFC_PL v4/PL1/fastq
-ln -s fastq/BLA_NAcc2_PL2 v4/PL2/fastq
-ln -s fastq/NAcc3_PL3_pVTA v4/PL3/fastq
-ln -s fastq/NAcc3_PL3_pVTA1 v4/pVTA1/fastq
-ln -s fastq/IC_NAcc4_pVTA2 v4/pVTA2/fastq
-ln -s fastq/RMTg v4/RMTg/fastq
+ln -s ../../fastq/BLA_NAcc2_PL2 v4/BLA/fastq
+ln -s ../../fastq/Brain v4/Brain/fastq
+ln -s ../../fastq/Eye v4/Eye/fastq
+ln -s ../../fastq/IC_NAcc4_pVTA2 v4/IC/fastq
+ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/IL/fastq
+ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/LHb/fastq
+ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/NAcc1/fastq
+ln -s ../../fastq/BLA_NAcc2_PL2 v4/NAcc2/fastq
+ln -s ../../fastq/NAcc3_PL3_pVTA v4/NAcc3/fastq
+ln -s ../../fastq/IC_NAcc4_pVTA2 v4/NAcc4/fastq
+ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/OFC/fastq
+ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/PL1/fastq
+ln -s ../../fastq/BLA_NAcc2_PL2 v4/PL2/fastq
+ln -s ../../fastq/NAcc3_PL3_pVTA v4/PL3/fastq
+ln -s ../../fastq/NAcc3_PL3_pVTA1 v4/pVTA1/fastq
+ln -s ../../fastq/IC_NAcc4_pVTA2 v4/pVTA2/fastq
+ln -s ../../fastq/RMTg v4/RMTg/fastq
 
 while read tissue; do
     while read sample; do

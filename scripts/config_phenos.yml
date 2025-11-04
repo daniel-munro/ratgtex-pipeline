@@ -11,7 +11,7 @@ fastq_map: ../fastq_map.txt
 ## Download and unzip genome, e.g. http://ftp.ensembl.org/pub/release-106/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 ref_genome: ../../../ref/GCF_036323735.1_GRCr8_genomic.chr.fa
 ## Download and unzip gene annotations, e.g. http://ftp.ensembl.org/pub/release-106/gtf/homo_sapiens/Homo_sapiens.GRCh38.106.gtf.gz
-ref_anno: ../../ref_v3/GCF_036323735.1_GRCr8_genomic.chr.gtf
+ref_anno: ../../../ref/GCF_036323735.1_GRCr8_genomic.chr.gtf
 
 ### Samples to include (any samples in the FASTQ map but not listed here will be ignored):
 samples_file: ../rat_ids.txt

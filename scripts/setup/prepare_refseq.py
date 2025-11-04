@@ -1,5 +1,6 @@
 import csv
 import argparse
+import re
 
 
 def load_mapping(mapping_file: str) -> tuple[dict[str, str], set[str]]:
@@ -43,6 +44,13 @@ def process_gtf(input_gtf: str, output_gtf: str, mapping: dict, allowed_accessio
             refseq_acc = fields[0]
             if refseq_acc not in allowed_accessions:
                 continue
+
+            # Skip entries where gene_id contains whitespace
+            attributes = fields[8] if len(fields) > 8 else ""
+            m = re.search(r'gene_id\s+"([^"]+)"', attributes)
+            if m and any(ch.isspace() for ch in m.group(1)):
+                continue
+
             # Replace the chromosome ID if found in our mapping
             if refseq_acc in mapping:
                 fields[0] = mapping[refseq_acc]

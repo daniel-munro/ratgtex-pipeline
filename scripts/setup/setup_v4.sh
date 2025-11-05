@@ -72,7 +72,7 @@ ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/OFC/fastq
 ln -s ../../fastq/IL_LHb_NAcc_OFC_PL v4/PL1/fastq
 ln -s ../../fastq/BLA_NAcc2_PL2 v4/PL2/fastq
 ln -s ../../fastq/NAcc3_PL3_pVTA v4/PL3/fastq
-ln -s ../../fastq/NAcc3_PL3_pVTA1 v4/pVTA1/fastq
+ln -s ../../fastq/NAcc3_PL3_pVTA v4/pVTA1/fastq
 ln -s ../../fastq/IC_NAcc4_pVTA2 v4/pVTA2/fastq
 ln -s ../../fastq/RMTg v4/RMTg/fastq
 
@@ -83,3 +83,24 @@ while read tissue; do
     done < v4/$tissue/rat_ids.txt
 done < tissues.dup.txt
 
+## After running phenotyping
+
+bash scripts/setup_merged_tissues.sh
+
+while read tissue; do
+    ## Make combined phenotype table
+    cd v4/$tissue/phenos/
+    bash scripts/combine_modalities.sh alt_polyA alt_TSS expression isoforms splicing stability
+    cd ../../../
+
+    rsync -av ~/tools/Pantry/pheast/ v4/$tissue/pheast --exclude input --exclude intermediate --exclude output --exclude .snakemake
+    cp scripts/config_pheast.yml v4/$tissue/pheast/config.yml
+done < tissues.txt
+
+## After Brain plink files are generated
+
+mkdir -p ref/LDREF
+for chrom in {1..20}; do
+    plink --bfile v4/Brain/geno --chr $chrom --make-bed --out ref/LDREF/Brain_v4.chr$chrom
+done
+cat ref/LDREF/Brain_v4.chr{1..20}.bim | cut -f2 > ref/LD_SNPs.txt

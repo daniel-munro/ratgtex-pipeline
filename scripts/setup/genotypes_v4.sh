@@ -61,3 +61,9 @@ zcat ref/exon_regions.tsv.gz | awk '$1 ~ /^chr([1-9]|1[0-9]|20)$/' > geno/interm
 tabix -f geno/all_rats_exons.vcf.gz
 zcat geno/all_rats_exons.vcf.gz | grep -v '^#' | cut -f3 > geno/all_rats_exons.snps.txt
 
+### Get all alleles ###
+## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
+bcftools view \
+    geno/ratgtex_v4_round11_1.vcf.gz \
+    --drop-genotypes \
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz

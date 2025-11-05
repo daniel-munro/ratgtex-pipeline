@@ -31,15 +31,9 @@ rule all:
         # expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
-        expand("{v}/{tissue}/{tissue}.expr.tpm.bed.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.cis_qtl.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.cis_independent_qtl.txt.gz", v=VERSION, tissue=TISSUES),
+        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.aFC.txt", v=VERSION, tissue=TISSUES),
         expand("{v}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/splice/{tissue}_splice.cis_independent_qtl.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/splice/{tissue}_splice.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/splice/{tissue}_splice.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES),
-
 

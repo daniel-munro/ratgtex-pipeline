@@ -18,8 +18,6 @@ localrules:
 include: "steps/setup.smk"
 include: "steps/align.smk"
 include: "steps/qc.smk"
-include: "steps/expression.smk"
-include: "steps/splicing.smk"
 include: "steps/qtl.smk"
 
 rule all:
@@ -30,10 +28,10 @@ rule all:
         expand("{v}/{tissue}/qc/{tissue}.star_stats.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
-        expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
-        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.aFC.txt", v=VERSION, tissue=TISSUES),
-        expand("{v}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES),
+        # expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
+        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.aFC.txt", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
 

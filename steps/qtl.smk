@@ -20,114 +20,13 @@ rule vcf_to_plink:
         """
 
 
-rule prune_for_covar:
-    """Prune genotypes to compute covariate PCs.
-    --indep-pairwise parameters are based on GTEx methods.
-    """
-    input:
-        multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam")
-    output:
-        multiext("{version}/{tissue}/covar/geno_pruned", ".bed", ".bim", ".fam"),
-    params:
-        geno_prefix = "{version}/{tissue}/geno",
-        pruned_dir = "{version}/{tissue}/covar",
-        pruned_prefix = "{version}/{tissue}/covar/geno_pruned"
-    shell:
-        # --geno 0.05 filters variants with >5% missing values (the rest will be imputed).
-        # Default is 0 so that samples with many more genotyped variants than others don't
-        # result in other samples having mostly missing values after pruning.
-        """
-        mkdir -p {params.pruned_dir}
-        plink2 \
-            --bfile {params.geno_prefix} \
-            --geno 0.00 \
-            --maf 0.05 \
-            --indep-pairwise 200 100 0.1 \
-            --out {params.pruned_prefix}
-        plink2 \
-            --bfile {params.geno_prefix} \
-            --extract {params.pruned_prefix}.prune.in \
-            --make-bed \
-            --out {params.pruned_prefix}
-        """
-
-
-rule covariates:
-    """Compute genotype and expression PCs and combine."""
-    input:
-        geno = multiext("{version}/{tissue}/covar/geno_pruned", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-    output:
-        covar = "{version}/{tissue}/covar.txt"
-    params:
-        pruned_prefix = "{version}/{tissue}/covar/geno_pruned",
-        n_geno_pcs = 5,
-        n_expr_pcs = 20
-    resources:
-        mem_mb = 16000,
-    shell:
-        "Rscript scripts/covariates.R {params.pruned_prefix} {input.bed} {params.n_geno_pcs} {params.n_expr_pcs} {output.covar}"
-
-
-rule tensorqtl_cis:
-    """Map cis-eQTLs, determining significance using permutations.
-    Outputs the top association per gene.
-    """
-    input:
-        geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{version}/{tissue}/covar.txt"
-    output:
-        "{version}/{tissue}/{tissue}.cis_qtl.txt.gz"
-    params:
-        geno_prefix = "{version}/{tissue}/geno",
-    resources:
-        runtime = '12h',
-    shell:
-        """
-        python3 scripts/run_tensorqtl.py \
-            {params.geno_prefix} \
-            {input.bed} \
-            {output} \
-            --covariates {input.covar} \
-            --mode cis
-        """
-
-
-rule tensorqtl_cis_independent:
-    """Use stepwise regression to identify multiple conditionally independent cis-eQTLs per gene."""
-    input:
-        geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{version}/{tissue}/covar.txt",
-        cis = "{version}/{tissue}/{tissue}.cis_qtl.txt.gz"
-    output:
-        "{version}/{tissue}/{tissue}.cis_independent_qtl.txt.gz"
-    params:
-        geno_prefix = "{version}/{tissue}/geno",
-    resources:
-        runtime = '20h',
-    shell:
-        """
-        python3 scripts/run_tensorqtl.py \
-            {params.geno_prefix} \
-            {input.bed} \
-            {output} \
-            --covariates {input.covar} \
-            --cis_output {input.cis} \
-            --mode cis_independent
-        """
-
-
 rule tensorqtl_cis_nominal:
     """Get summary statistics for all tested cis-window SNPs per gene."""
     input:
         geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{version}/{tissue}/covar.txt"
+        bed = "{version}/{tissue}/phenos/output/expression.bed.gz",
+        bedi = "{version}/{tissue}/phenos/output/expression.bed.gz.tbi",
+        covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv"
     output:
         expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     params:
@@ -154,9 +53,9 @@ rule tensorqtl_trans:
     """Map trans-eQTLs (without significance testing)."""
     input:
         geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz",
-        bedi = "{version}/{tissue}/{tissue}.expr.iqn.filtered.bed.gz.tbi",
-        covar = "{version}/{tissue}/covar.txt"
+        bed = "{version}/{tissue}/phenos/output/expression.bed.gz",
+        bedi = "{version}/{tissue}/phenos/output/expression.bed.gz.tbi",
+        covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv"
     output:
         "{version}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz"
     params:
@@ -185,14 +84,14 @@ rule tensorqtl_trans:
 rule tensorqtl_all_signif:
     """Extract all significant cis SNP-gene pairs."""
     input:
-        perm = "{version}/{tissue}/{tissue}.cis_qtl.txt.gz",
+        qtl = "{version}/{tissue}/pheast/output/qtl/expression.cis_qtl.txt.gz",
         nom = expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     output:
         "{version}/{tissue}/{tissue}.cis_qtl_signif.txt.gz"
     params:
         nom_prefix = "{version}/{tissue}/nominal/{tissue}"
     shell:
-        "python3 scripts/tensorqtl_all_signif.py {input.perm} {params.nom_prefix} {output} --fdr 0.05"
+        "python3 scripts/tensorqtl_all_signif.py {input.qtl} {params.nom_prefix} {output} --fdr 0.05"
 
 
 rule tensorqtl_all_cis_pvals:
@@ -207,6 +106,39 @@ rule tensorqtl_all_cis_pvals:
         "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
 
 
+rule assemble_log_expression:
+    """Pantry already assembles the TPM expression phenotype table, but this
+    generates log2(readcount+1) tables for aFC and download.
+    """
+    input:
+        kallisto = lambda w: expand("{{version}}/{{tissue}}/phenos/intermediate/expression/{rat_id}/abundance.tsv", rat_id=ids(w.tissue)),
+        samples = "{version}/{tissue}/rat_ids.txt",
+        ref_anno = f"{ANNO_PREFIX}.gtf",
+    output:
+        multiext("{version}/{tissue}/{tissue}.expr.log2.bed", ".gz", ".gz.tbi"),
+    params:
+        script_path = "{version}/{tissue}/phenos/scripts/assemble_bed.py",
+        expr_dir = "{version}/{tissue}/phenos/intermediate/expression",
+        bed = "{version}/{tissue}/{tissue}.expr.log2.bed",
+        bed_iso = "{version}/{tissue}/{tissue}.iso.log2.bed",
+    resources:
+        mem_mb = 32000,
+    shell:
+        """
+        python3 {params.script_path} expression \
+            --input-dir {params.expr_dir} \
+            --samples {input.samples} \
+            --ref-anno {input.ref_anno} \
+            --output-isoforms {params.bed_iso} \
+            --output-expression {params.bed} \
+            --units est_counts \
+            --log2-expr
+        rm {params.bed_iso}
+        bgzip {params.bed}
+        tabix {params.bed}.gz
+        """
+
+
 rule aFC:
     """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
@@ -214,9 +146,9 @@ rule aFC:
         vcfi = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz.tbi",
         bed = "{version}/{tissue}/{tissue}.expr.log2.bed.gz",
         bedi = "{version}/{tissue}/{tissue}.expr.log2.bed.gz.tbi",
-        qtl = "{version}/{tissue}/{tissue}.cis_qtl.txt.gz",
-        qtl_indep = "{version}/{tissue}/{tissue}.cis_independent_qtl.txt.gz",
-        covar = "{version}/{tissue}/covar.txt"
+        qtl = "{version}/{tissue}/pheast/output/qtl/expression.cis_qtl.txt.gz",
+        qtl_indep = "{version}/{tissue}/pheast/output/qtl/expression.cis_independent_qtl.txt.gz",
+        covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv",
     output:
         "{version}/{tissue}/{tissue}.aFC.txt"
     resources:

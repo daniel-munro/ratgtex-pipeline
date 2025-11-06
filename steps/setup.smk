@@ -38,6 +38,7 @@ ANNO_PREFIX = config["ref_anno"].removesuffix(".gtf")
 TISSUES = config["run"]
 # Get list of tissues pre-merge for things like QC
 TISSUES_SEP = [t for t in TISSUES if t not in config["merged_tissues"]]
+TISSUES_MERGED = [t for t in TISSUES if not t[-1].isdigit()]
 FASTQ_MAPS = {}
 for tissue in TISSUES:
     if tissue in config["merged_tissues"]:

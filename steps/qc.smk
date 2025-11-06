@@ -1,8 +1,21 @@
 localrules:
+    collapse_annotation,
     qc_mixups_exon_regions,
     qc_mixups_test_snps_vcf,
     qc_sex_concordance,
     qc_star_stats,
+
+
+rule collapse_annotation:
+    """Combine all isoforms of a gene into a single transcript.
+    See https://github.com/broadinstitute/gtex-pipeline/tree/master/gene_model
+    """
+    input:
+        f"{ANNO_PREFIX}.gtf"
+    output:
+        f"{ANNO_PREFIX}.genes.gtf"
+    shell:
+        "python3 scripts/setup/collapse_annotation.py {input} {output}"
 
 
 rule qc_mixups_exon_regions:

@@ -10,6 +10,16 @@ def ids(tissue):
 configfile: 'config.yaml'
 # For each tissue, specify: read_length, fastq_path, paired_end, geno_dataset
 
+MODALITIES = ["alt_polyA", "alt_TSS", "expression", "isoforms", "splicing", "stability"]
+grouped_modality = {
+    "alt_polyA": True,
+    "alt_TSS": True,
+    "expression": False,
+    "isoforms": True,
+    "splicing": True,
+    "stability": False,
+}
+
 # These steps are short and will not be submitted as cluster jobs:
 # (Each included snakefile specifies its own localrules)
 localrules:
@@ -30,8 +40,8 @@ rule all:
         # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
         expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES_MERGED, modality=MODALITIES),
+        expand("{v}/{tissue}/{tissue}.expression.cis_qtl_all_pvals.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
         expand("{v}/{tissue}/{tissue}.aFC.txt", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.expression.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
 

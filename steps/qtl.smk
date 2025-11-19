@@ -24,15 +24,15 @@ rule tensorqtl_cis_nominal:
     """Get summary statistics for all tested cis-window SNPs per gene."""
     input:
         geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/phenos/output/expression.bed.gz",
-        bedi = "{version}/{tissue}/phenos/output/expression.bed.gz.tbi",
-        covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv"
+        bed = "{version}/{tissue}/phenos/output/{modality}.bed.gz",
+        bedi = "{version}/{tissue}/phenos/output/{modality}.bed.gz.tbi",
+        covar = "{version}/{tissue}/pheast/intermediate/covar/{modality}.covar.tsv"
     output:
-        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
+        expand("{{version}}/{{tissue}}/nominal-{{modality}}/{{tissue}}.{{modality}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     params:
         geno_prefix = "{version}/{tissue}/geno",
-        outdir = "{version}/{tissue}/nominal",
-        out_prefix = "{tissue}",
+        outdir = "{version}/{tissue}/nominal-{modality}",
+        out_prefix = "{tissue}.{modality}",
     resources:
         mem_mb = 32000,
         runtime = '12h',
@@ -53,15 +53,15 @@ rule tensorqtl_trans:
     """Map trans-eQTLs (without significance testing)."""
     input:
         geno = multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam"),
-        bed = "{version}/{tissue}/phenos/output/expression.bed.gz",
-        bedi = "{version}/{tissue}/phenos/output/expression.bed.gz.tbi",
-        covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv"
+        bed = "{version}/{tissue}/phenos/output/{modality}.bed.gz",
+        bedi = "{version}/{tissue}/phenos/output/{modality}.bed.gz.tbi",
+        covar = "{version}/{tissue}/pheast/intermediate/covar/{modality}.covar.tsv"
     output:
-        "{version}/{tissue}/{tissue}.trans_qtl_pairs.txt.gz"
+        "{version}/{tissue}/{tissue}.{modality}.trans_qtl_pairs.txt.gz"
     params:
         geno_prefix = "{version}/{tissue}/geno",
         outdir = "{version}/{tissue}",
-        out_prefix = "{tissue}",
+        out_prefix = "{tissue}.{modality}",
     resources:
         mem_mb = lambda w, attempt: 32000 * 2**(attempt-1),
         runtime = '12h',
@@ -84,24 +84,33 @@ rule tensorqtl_trans:
 rule tensorqtl_all_signif:
     """Extract all significant cis SNP-gene pairs."""
     input:
-        qtl = "{version}/{tissue}/pheast/output/qtl/expression.cis_qtl.txt.gz",
-        nom = expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
+        qtl = "{version}/{tissue}/pheast/output/qtl/{modality}.cis_qtl.txt.gz",
+        nom = expand("{{version}}/{{tissue}}/nominal-{{modality}}/{{tissue}}.{{modality}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21)),
+        groups = lambda w: f"{w.version}/{w.tissue}/phenos/output/{w.modality}.phenotype_groups.txt" if grouped_modality[w.modality] else [],
     output:
-        "{version}/{tissue}/{tissue}.cis_qtl_signif.txt.gz"
+        "{version}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz"
     params:
-        nom_prefix = "{version}/{tissue}/nominal/{tissue}"
+        nom_prefix = "{version}/{tissue}/nominal-{modality}/{tissue}.{modality}",
+        groups_arg = lambda w, input: f"--groups {input.groups}" if grouped_modality[w.modality] else "",
     shell:
-        "python3 scripts/tensorqtl_all_signif.py {input.qtl} {params.nom_prefix} {output} --fdr 0.05"
+        """
+        python3 scripts/tensorqtl_all_signif.py \
+            {input.qtl} \
+            {params.nom_prefix} \
+            {output} \
+            {params.groups_arg} \
+            --fdr 0.05
+        """
 
 
 rule tensorqtl_all_cis_pvals:
     """Extract p-values for all tested cis-window SNPs per gene."""
     input:
-        expand("{{version}}/{{tissue}}/nominal/{{tissue}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
+        expand("{{version}}/{{tissue}}/nominal-{{modality}}/{{tissue}}.{{modality}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     output:
-        "{version}/{tissue}/{tissue}.cis_qtl_all_pvals.txt.gz"
+        "{version}/{tissue}/{tissue}.{modality}.cis_qtl_all_pvals.txt.gz"
     params:
-        nom_dir = "{version}/{tissue}/nominal"
+        nom_dir = "{version}/{tissue}/nominal-{modality}"
     shell:
         "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
 

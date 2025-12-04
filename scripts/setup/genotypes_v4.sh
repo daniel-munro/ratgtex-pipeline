@@ -1,15 +1,15 @@
 set -euxo pipefail
 
 # This documents how the original dataset genotypes were processed uniformly.
-# All genotypes are extracted from the round 11.1 VCF.
+# All genotypes are extracted from the round 11.2 VCF.
 
 ## On TSCC:
 # bcftools view \
-#     /tscc/projects/ps-palmer/hs_rats/round11_1/output/08_sample_filter/round11_1_allchrom_allsexes_snp_and_sample_filtered.vcf.gz \
-#     --samples-file <(cut -f1 id_map_to_extract_11_1.tsv) \
-# | bcftools reheader -s id_map_to_extract_11_1.tsv \
+#     /tscc/projects/ps-palmer/hs_rats/round11_2/output/08_sample_filter/round11_2_allchrom_allsexes_snp_and_sample_filtered.vcf.gz \
+#     --samples-file <(cut -f1 id_map_to_extract_11_2.tsv) \
+# | bcftools reheader -s id_map_to_extract_11_2.tsv \
 # | bcftools annotate -x ^INFO/AC,INFO/AN,^FORMAT/GT \
-#     -Oz -o ratgtex_v4_round11_1.vcf.gz
+#     -Oz -o ratgtex_v4_round11_2.vcf.gz
 ## Then copy that to geno/original/
 
 # Two steps are used to make sure REF alleles are all correct.
@@ -21,31 +21,31 @@ set -euxo pipefail
 
 mkdir -p geno/intermediate
 
-### Round 11.1 genotypes ###
-echo '*** Preparing round 11.1 genotypes...'
-plink2 --vcf geno/original/ratgtex_v4_round11_1.vcf.gz \
+### Round 11.2 genotypes ###
+echo '*** Preparing round 11.2 genotypes...'
+plink2 --vcf geno/original/ratgtex_v4_round11_2.vcf.gz \
     --chr 1-20 \
     --set-all-var-ids '@:#' \
     --fa ref/GCF_036323735.1_GRCr8_genomic.chr.fa \
     --ref-from-fa force \
     --recode vcf \
     --output-chr chrM \
-    --out geno/intermediate/ratgtex_v4_round11_1
-bgzip geno/intermediate/ratgtex_v4_round11_1.vcf
-bcftools norm geno/intermediate/ratgtex_v4_round11_1.vcf.gz \
+    --out geno/intermediate/ratgtex_v4_round11_2
+bgzip geno/intermediate/ratgtex_v4_round11_2.vcf
+bcftools norm geno/intermediate/ratgtex_v4_round11_2.vcf.gz \
     --rm-dup snps \
     --check-ref x \
     --fasta-ref ref/GCF_036323735.1_GRCr8_genomic.chr.fa \
     -Ou | bcftools view \
     --min-alleles 2 \
     --max-alleles 2 \
-    -O z -o geno/ratgtex_v4_round11_1.vcf.gz
-tabix -f geno/ratgtex_v4_round11_1.vcf.gz
+    -O z -o geno/ratgtex_v4_round11_2.vcf.gz
+tabix -f geno/ratgtex_v4_round11_2.vcf.gz
 
 ### Get exon SNPs for all genotyped rats for sample mixup QC ###
 zcat ref/exon_regions.tsv.gz | awk '$1 ~ /^chr([1-9]|1[0-9]|20)$/' > geno/intermediate/all_rats_exon_regions.tsv
 ## Then copy geno/intermediate/all_rats_exon_regions.tsv to TSCC and run:
-# plink2 --vcf /tscc/projects/ps-palmer/hs_rats/round11_1/output/08_sample_filter/round11_1_allchrom_allsexes_snp_and_sample_filtered.vcf.gz \
+# plink2 --vcf /tscc/projects/ps-palmer/hs_rats/round11_2/output/08_sample_filter/round11_2_allchrom_allsexes_snp_and_sample_filtered.vcf.gz \
 #     --chr 1-20 \
 #     --extract bed1 all_rats_exon_regions.tsv \
 #     --set-all-var-ids '@:#' \
@@ -55,15 +55,15 @@ zcat ref/exon_regions.tsv.gz | awk '$1 ~ /^chr([1-9]|1[0-9]|20)$/' > geno/interm
 # bgzip tmp.vcf
 # bcftools annotate tmp.vcf.gz \
 #     -x ^INFO/AC,INFO/AN,^FORMAT/GT \
-#     -O z -o all_rats_exons.round11_1.vcf.gz
+#     -O z -o all_rats_exons.round11_2.vcf.gz
 # rm tmp.vcf.gz
-## Then copy all_rats_exons.round11_1.vcf.gz back to geno/all_rats_exons.vcf.gz and run:
+## Then copy all_rats_exons.round11_2.vcf.gz back to geno/all_rats_exons.vcf.gz and run:
 tabix -f geno/all_rats_exons.vcf.gz
 zcat geno/all_rats_exons.vcf.gz | grep -v '^#' | cut -f3 > geno/all_rats_exons.snps.txt
 
 ### Get all alleles ###
 ## awk '!_[$1]++' keeps only the first instance per SNP ID (in rare cases there are multiple)
 bcftools view \
-    geno/ratgtex_v4_round11_1.vcf.gz \
+    geno/ratgtex_v4_round11_2.vcf.gz \
     --drop-genotypes \
     -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz

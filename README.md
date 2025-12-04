@@ -2,27 +2,13 @@
 
 This is the code used to process data for the [RatGTEx Portal](https://ratgtex.org). It is built on [Snakemake](https://snakemake.github.io/), a Python-based framework for reproducible data analysis. Since things might not work the first time with a new dataset, it makes it easy to process data iteratively. You can run part of the pipeline on a subset of the data, and then run it on the full dataset without regenerating existing files.
 
-To add a new tissue to RatGTEx:
-1. Make a directory within this one named as the tissue abbreviation.
-2. Set up the software as described below.
-3. Set up the raw data as described below.
-4. Run snakemake as described below.
-
 The main steps of the pipeline are:
 1. Align RNA-Seq reads using [STAR](https://github.com/alexdobin/STAR).
 2. Checking for and fixing sample mixups.
-3. Quantify gene expression using [RSEM](https://deweylab.github.io/RSEM/).
-4. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes.
-5. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
-6. Map cis-sQTLs and trans-sQTLs using [regtools](https://regtools.readthedocs.io/en/latest/), [leafCutter](http://davidaknowles.github.io/leafcutter/), and tensorQTL.
-
-Snakemake automatically links the pipeline together based on input and output files. Here is how all the steps link together:
-
-![RatGTEx pipeline rulegraph](test/rulegraph.png)
-
-Here's a more detailed version showing the inputs and outputs:
-
-![RatGTEx pipeline filegraph](test/filegraph.png)
+3. Quantify RNA phenotypes using [Pantry](https://github.com/PejLab/Pantry).
+4. Map cis-eQTLs and trans-eQTLs using [tensorQTL](https://github.com/broadinstitute/tensorqtl) in various modes. Some of these are built into the Pantry Pheast module, while others are run in the main RatGTEx snakemake pipeline.
+5. Compute TWAS weights for all RNA phenotypes using the Pantry Pheast module. These are used for the Rat TWAS Hub.
+6. Calculate cis-eQTL effect size (allelic fold change) using [aFC.py](https://github.com/secastel/aFC).
 
 ## Setup
 
@@ -160,7 +146,7 @@ Use the `-n` dry run tag to make sure things seem to be set up correctly before 
 
 ### Merging same-tissue datasets
 
-Sets of samples from the same tissue, collected by different studies, can be run individually and then run as a merged dataset. These merges (e.g. NAcc1 + NAcc2 + NAcc3 = NAcc) are specified in the config. Keep the merged tissue names commented out in the `run` list at first to run the individual datasets, at least until RSEM and regtools junctions are run on all their samples. Run `scripts/setup/setup_merged_tissues.sh` to set up the merged directories, which involves symlinking to all the RSEM and regtools outputs, and merging the rat ID lists. Then, uncomment the merged tissue names in the `run` list and run them.
+Sets of samples from the same tissue, collected by different studies, can be run individually and then run as a merged dataset. These merges (e.g. NAcc1 + NAcc2 + NAcc3 = NAcc) are specified in the config. Keep the merged tissue names commented out in the `run` list at first to run the individual datasets, at least before running Pantry phenotyping. Run `scripts/setup/setup_merged_tissues.sh` to set up the merged directories. Then, uncomment the merged tissue names in the `run` list and run them.
 
 ## Help
 

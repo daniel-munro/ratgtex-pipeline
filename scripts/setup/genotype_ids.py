@@ -8,6 +8,7 @@ Inputs:
       ddGBS_{info1}_{info2}_{RFID}
       Riptide{info1}_{RFID}_{info2}
       Rattaca{info1}_{RFID}_{info2}
+      LSWrnaseq_{RFID}_LSWNNNNN
     Where info1 and info2 never contain underscores, but RFID may contain underscores.
 
 Outputs:
@@ -16,6 +17,7 @@ Outputs:
       - If there are Riptide matches for the RFID, choose the one with the highest integer
         in the first Riptide match group.
       - Else if there are ddGBS(R) matches, choose the last occurring ddGBS(R) match.
+      - Else if there is an LSWrnaseq match, choose that one (at most one per RFID).
       - Else exclude the RFID (ignore Rattaca).
 
 Usage:
@@ -36,6 +38,7 @@ from typing import Dict, Iterable, List, Optional, Tuple
 # Precompile regex patterns for speed and clarity.
 _RE_DDGBS = re.compile(r"^ddGBSR?_([^_]+)_([^_]+)_(.+)$")
 _RE_RIPTIDE = re.compile(r"^Riptide([^_]+)_(.+)_([^_]+)$")
+_RE_LSWRNASEQ = re.compile(r"^LSWrnaseq_(.+)_LSWNNNNN$")
 
 
 def select_vcf_per_rfid(
@@ -56,6 +59,7 @@ def select_vcf_per_rfid(
     # Track best Riptide (by highest rank) and last ddGBS per RFID.
     best_riptide_for_rfid: Dict[str, Tuple[int, str]] = {}  # rfid -> (rank, sid)
     last_ddgbs_for_rfid: Dict[str, str] = {}                # rfid -> sid
+    lsw_rnaseq_for_rfid: Dict[str, str] = {}                # rfid -> sid
     unknown_patterns = 0
 
     for sid in vcf_list:
@@ -83,6 +87,13 @@ def select_vcf_per_rfid(
             last_ddgbs_for_rfid[rfid] = sid
             continue
 
+        # LSW rnaseq fallback (only one expected per RFID).
+        m_lsw = _RE_LSWRNASEQ.match(s)
+        if m_lsw:
+            rfid = m_lsw.group(1)
+            lsw_rnaseq_for_rfid[rfid] = sid
+            continue
+
         # Ignore Rattaca and anything else.
         unknown_patterns += 1
 
@@ -90,6 +101,7 @@ def select_vcf_per_rfid(
     selected_vcfs: List[str] = []
     riptide_selected = 0
     ddgbs_selected = 0
+    lsw_selected = 0
 
     for rfid in req_list:
         if rfid in best_riptide_for_rfid:
@@ -100,15 +112,20 @@ def select_vcf_per_rfid(
             filtered_rfids.append(rfid)
             selected_vcfs.append(last_ddgbs_for_rfid[rfid])
             ddgbs_selected += 1
+        elif rfid in lsw_rnaseq_for_rfid:
+            filtered_rfids.append(rfid)
+            selected_vcfs.append(lsw_rnaseq_for_rfid[rfid])
+            lsw_selected += 1
         else:
-            # Exclude if neither Riptide nor ddGBS match exists.
+            # Exclude if no known pattern matches for this RFID.
             continue
 
     print(
         f"Parsed {len(vcf_list)} VCF IDs; Riptide RFIDs: {len(best_riptide_for_rfid)}, "
-        f"ddGBS RFIDs: {len(last_ddgbs_for_rfid)}; unknown pattern lines: {unknown_patterns}; "
+        f"ddGBS RFIDs: {len(last_ddgbs_for_rfid)}, LSWrnaseq RFIDs: {len(lsw_rnaseq_for_rfid)}; "
+        f"unknown pattern lines: {unknown_patterns}; "
         f"selected {len(filtered_rfids)} of {len(req_list)} requested "
-        f"(Riptide={riptide_selected}, ddGBS={ddgbs_selected})",
+        f"(Riptide={riptide_selected}, ddGBS={ddgbs_selected}, LSWrnaseq={lsw_selected})",
         file=sys.stderr,
     )
 
@@ -151,4 +168,3 @@ def main(argv: Optional[List[str]] = None) -> None:
 
 if __name__ == "__main__":
     main()
-

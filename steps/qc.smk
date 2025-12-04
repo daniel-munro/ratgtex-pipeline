@@ -1,7 +1,6 @@
 localrules:
     collapse_annotation,
     qc_mixups_exon_regions,
-    qc_mixups_test_snps_vcf,
     qc_sex_concordance,
     qc_star_stats,
 

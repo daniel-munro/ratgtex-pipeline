@@ -21,12 +21,14 @@ ref_anno: "ref/GCF_036323735.1_GRCr8_genomic.chr.gtf"
 ## the merged tissue.
 run:
   ## Singletons:
+  - Adipose
   - BLA
   - Brain
   - Eye
   - IC
   - IL
   - LHb
+  - Liver
   - OFC
   - RMTg
   ## Tissues to merge:
@@ -64,34 +66,34 @@ tissues:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   LHb:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   NAcc1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   OFC:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   PL1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## Eye dataset
   Eye:
     read_length: 150
     fastq_path: "fastq/Eye"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
   ## Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
@@ -101,73 +103,73 @@ tissues:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   NAcc2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   PL2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## Adipose and Liver dataset
   Adipose:
     read_length: 76
     fastq_path: "fastq/Adipose_Liver/Fat"
     paired_end: false
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   Liver:
     read_length: 126
     fastq_path: "fastq/Adipose_Liver/Liver"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## Whole brain hemisphere dataset
   Brain:
     read_length: 101
     fastq_path: "fastq/Brain"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## RMTg dataset
   RMTg:
     read_length: 151
     fastq_path: "fastq/RMTg"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## NAcc3, PL3, and pVTA1 samples from p50_hao_chen_2020_rnaseq
   NAcc3:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   PL3:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   pVTA1:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
 
   ## IC, NAcc4, and pVTA2 samples from p50_paul_meyer_2020_rnaseq
   IC:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   NAcc4:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"
   pVTA2:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    geno_dataset: "ratgtex_v4_round11_1"
+    geno_dataset: "ratgtex_v4_round11_2"

@@ -1,9 +1,11 @@
+Adipose
 BLA
 Brain
 Eye
 IC
 IL
 LHb
+Liver
 NAcc1
 NAcc2
 NAcc3

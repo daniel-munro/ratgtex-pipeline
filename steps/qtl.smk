@@ -65,7 +65,7 @@ rule tensorqtl_trans:
     resources:
         mem_mb = lambda w, attempt: 32000 * 2**(attempt-1),
         runtime = '12h',
-    retries: 2
+    retries: 3
     shell:
         # batch_size set due to "RuntimeError: CUDA out of memory"
         """
@@ -108,11 +108,13 @@ rule tensorqtl_all_cis_pvals:
     input:
         expand("{{version}}/{{tissue}}/nominal-{{modality}}/{{tissue}}.{{modality}}.cis_qtl_pairs.chr{chrn}.parquet", chrn=range(1, 21))
     output:
-        "{version}/{tissue}/{tissue}.{modality}.cis_qtl_all_pvals.txt.gz"
+        "{version}/{tissue}/{tissue}.{modality}.cis_qtl_all_pvals.tsv.gz"
     params:
-        nom_dir = "{version}/{tissue}/nominal-{modality}"
+        nom_prefix = "{version}/{tissue}/nominal-{modality}/{tissue}.{modality}"
+    resources:
+        mem_mb = 32000,
     shell:
-        "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_dir} {output}"
+        "python3 scripts/tensorqtl_all_cis_pvals.py {params.nom_prefix} {output}"
 
 
 rule assemble_log_expression:
@@ -159,7 +161,7 @@ rule aFC:
         qtl_indep = "{version}/{tissue}/pheast/output/qtl/expression.cis_independent_qtl.txt.gz",
         covar = "{version}/{tissue}/pheast/intermediate/covar/expression.covar.tsv",
     output:
-        "{version}/{tissue}/{tissue}.aFC.txt"
+        "{version}/{tissue}/{tissue}.aFC.tsv"
     resources:
         runtime = '12h'
     shell:
@@ -172,5 +174,4 @@ rule aFC:
             --log_xform 1 \
             --output {output}
         """
-
 

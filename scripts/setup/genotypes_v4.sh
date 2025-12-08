@@ -66,4 +66,4 @@ zcat geno/all_rats_exons.vcf.gz | grep -v '^#' | cut -f3 > geno/all_rats_exons.s
 bcftools view \
     geno/ratgtex_v4_round11_2.vcf.gz \
     --drop-genotypes \
-    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.txt.gz
+    -Ov | grep -v '^#' | cut -f3-5 | awk '!_[$1]++' | gzip -c > geno/alleles.tsv.gz

@@ -1,4 +1,4 @@
-"""Check for RNA/genotype matches against a large set of rat genotypes"""
+"""Check RNA/genotype matches against a large set of rat genotypes."""
 
 import argparse
 from pathlib import Path
@@ -8,7 +8,7 @@ import pysam
 
 
 def geno_frac_alt(gt: tuple) -> float:
-    """Convert genotype to fraction alt allele (0, 0.5, or 1)"""
+    """Convert genotype to alt allele fraction (0, 0.5, 1) or None if missing."""
     # return None if gt[0] is None or gt[1] is None else sum(gt) / 2
     if len(gt) == 2 and gt[0] in {0, 1} and gt[1] in {0, 1}:
         return sum(gt) / 2

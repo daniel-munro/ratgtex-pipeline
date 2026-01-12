@@ -1,4 +1,4 @@
-"""Compare ASE read counts to genotypes to check for mismatches"""
+"""Compare ASE read counts to genotypes to check for mismatches."""
 
 import argparse
 from pathlib import Path
@@ -8,7 +8,7 @@ import pysam
 
 
 def geno_frac_alt(gt: tuple) -> float:
-    """Convert genotype to fraction alt allele (0, 0.5, or 1)"""
+    """Convert genotype to alt allele fraction (0, 0.5, 1) or None if missing."""
     return None if gt[0] is None or gt[1] is None else sum(gt) / 2
 
 

@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
+"""Summarize STAR Log.final.out statistics for multiple samples."""
+
 import argparse
-import pandas as pd
 from pathlib import Path
 
+import pandas as pd
+
 def parse_star_log(log_file):
-    """Parse a STAR log file and return a dictionary of statistics."""
+    """Parse a STAR Log.final.out file into a dict of label -> value."""
     stats = {}
     with open(log_file, 'r') as f:
         for line in f:

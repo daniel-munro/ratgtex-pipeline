@@ -14,7 +14,7 @@ The main steps of the pipeline are:
 
 ### Conda environment
 
-Install a conda-like package manager (I recomment [miniforge](https://github.com/conda-forge/miniforge)) and add the bioconda channel.
+Install a conda-like package manager (I recommend [miniforge](https://github.com/conda-forge/miniforge)) and add the bioconda channel.
 
 Create the ratgtex environment:
 
@@ -70,12 +70,16 @@ This uses snakemake v8 or higher and the `snakemake-executor-plugin-slurm` plugi
 
 #### `config.yaml`
 
-This configuration file contains parameters about the datasets and reference data and is used by snakemake. Parameters for each tissue are grouped under tissue names, e.g.:
+This configuration file contains parameters about the datasets and reference data and is used by snakemake. Parameters for each tissue are grouped under tissue names, and the `run` list controls which tissues are processed, e.g.:
 
 ```yaml
-version: "v3"
-ref_genome: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.fa"
-ref_anno: "ref/GCF_015227675.2_mRatBN7.2_genomic.chr.gtf"
+version: "v4"
+ref_genome: "ref/GCF_036323735.1_GRCr8_genomic.chr.fa"
+ref_anno: "ref/GCF_036323735.1_GRCr8_genomic.chr.gtf"
+
+run:
+  - IL
+  - LHb
 
 tissues:
   # IL, LHb, NAcc1, OFC, and PL1 datsets
@@ -83,12 +87,12 @@ tissues:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
+    geno_dataset: "ratgtex_v4_round11_2"
   LHb:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    geno_dataset: "IL_LHb_NAcc_OFC_PL"
+    geno_dataset: "ratgtex_v4_round11_2"
 ...
 ```
 
@@ -106,6 +110,7 @@ A tab-delimited file with no header containing the paths to each FASTQ file and 
 - If multiple files map to the same ID, i.e. the ID appears in multiple rows, reads from those files will be aligned into one BAM file.
 - You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
 - Any listed files whose rat IDs are not in `{version}/{tissue}/rat_ids.txt` will be ignored.
+- If a tissue includes a mix of single-end and paired-end samples, omit `paired_end` from the tissue config so the pipeline infers pairing per row.
 
 #### `{version}/{tissue}/rat_ids.txt`
 
@@ -129,7 +134,7 @@ Before running Snakemake, run `python3 scripts/setup/init_check.py {version} {ti
 
 The way to do sample mixup testing is to generate the mixup checking outputs using Snakemake, which will generate the BAM files as dependencies if needed. Examine the outputs to identify samples that need to be relabeled (e.g. if two labels get swapped) or removed.
 
-- To relabel a sample, edit the ID in the 2nd column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
+- To relabel a sample, edit the rat ID in the last column of `fastq_map.txt` for all of its FASTQ files so that its BAM file gets labeled correctly. You'll then need to regenerate the BAM file since it will now use the correct VCF individual as input to STAR.
 - To remove a sample, remove its ID from `rat_ids.txt` and delete its BAM and any other generated files.
 
 Before removing samples, run the second stage of sample mixup checking, which tests the RNA-seq samples that still don't have matches against 6000+ rat genotypes to see if a match can be found. To do this, list the mismatched samples in `{version}/{tissue}/qc/samples_without_matches.txt`, along with an OK sample as a positive control (if that sample is included in the all-rat VCF). Then generate `{version}/{tissue}/qc/all_rats_summary.tsv` and use any additional matches found. This will probably require adding the new matching genotypes to the VCF file (see `scripts/setup/genotypes_{version}.sh`).

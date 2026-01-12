@@ -1,8 +1,11 @@
-# Extract from tensorQTL output file the phenotype_id and
-# variant_id column. Then extract chromosome and location
-# from variant IDs and include those too. You can include multiple file names,
-# and the union of gene/SNP pairs will be output. Useful to get aFC for top associations +
-# independent eQTLs.
+"""Prepare QTL input for aFC calculation.
+
+Extract the phenotype_id and variant_id columns from tensorQTL output file(s).
+Then extract chromosome and location from variant IDs (assumed to have format
+{chrom}:{pos}) and include those too. You can include multiple file names, and
+the union of gene/SNP pairs will be output. Useful to get aFC for top
+associations + independent eQTLs.
+"""
 
 import sys
 import pandas as pd

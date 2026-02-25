@@ -14,14 +14,12 @@ def load_tissues(path: Path) -> list[str]:
         return [line.strip() for line in f if line.strip()]
 
 
-def load_fastq_rfid_counts(path: Path) -> dict[str, int]:
-    """Count fastq_map rows per RFID.
+def load_fastq_entries(path: Path) -> list[tuple[str, str]]:
+    """Load one FASTQ file per row from fastq_map.
 
-    Expected fastq_map formats per row:
-    - single-end: fastq, rfid
-    - paired-end: fastq1, fastq2, rfid
+    Returns a list of (fastq, rfid). For paired-end rows, emits one row per file.
     """
-    counts: dict[str, int] = {}
+    entries: list[tuple[str, str]] = []
     with path.open() as f:
         for line_no, line in enumerate(f, start=1):
             line = line.rstrip("\n")
@@ -29,19 +27,21 @@ def load_fastq_rfid_counts(path: Path) -> dict[str, int]:
                 continue
             fields = line.split("\t")
             if len(fields) == 2:
-                _, rfid = fields
+                fastq, rfid = fields
+                entries.append((fastq, rfid))
             elif len(fields) == 3:
-                _, _, rfid = fields
+                fastq1, fastq2, rfid = fields
+                entries.append((fastq1, rfid))
+                entries.append((fastq2, rfid))
             else:
                 raise ValueError(
                     f"{path}:{line_no} has {len(fields)} columns; expected 2 or 3"
                 )
-            counts[rfid] = counts.get(rfid, 0) + 1
-    return counts
+    return entries
 
 
 def load_rat_ids(path: Path) -> set[str]:
-    """Load v4 release rat IDs from rat_ids.txt."""
+    """Load release rat IDs from a rat_ids file."""
     with path.open() as f:
         return {line.strip() for line in f if line.strip()}
 
@@ -58,7 +58,6 @@ def load_relabels(path: Path) -> dict[tuple[str, str], str]:
 
     Returns a mapping:
       (tissue, original_rfid) -> updated_rfid
-    where updated_rfid may be empty for removed samples.
     """
     table = pd.read_csv(path, sep="\t", dtype=str).fillna("")
     required = {"tissue", "original_rfid", "updated_rfid"}
@@ -76,6 +75,11 @@ def load_relabels(path: Path) -> dict[tuple[str, str], str]:
         if not tissue or not original:
             raise ValueError(
                 f"{path}: row {i + 2} has empty tissue/original_rfid, which is invalid"
+            )
+        if not updated:
+            raise ValueError(
+                f"{path}: row {i + 2} has empty updated_rfid; "
+                "use an explicit unknown-{tissue}-{n} label instead"
             )
         key = (tissue, original)
         if key in mapping and mapping[key] != updated:
@@ -139,38 +143,13 @@ def load_removed(path: Path) -> dict[tuple[str, str], str]:
     return mapping
 
 
-def make_removed_row(
-    tissue: str,
-    original_rfid: str,
-    status: str,
-    in_fastq_map: bool = False,
-    n_fastq_rows: int = 0,
-) -> dict[str, object]:
-    """Create a canonical removed-sample row with no retained RFID."""
-    return {
-        "tissue": tissue,
-        "original_rfid": original_rfid,
-        "rfid": "",
-        "in_fastq_map": in_fastq_map,
-        "n_fastq_rows": n_fastq_rows,
-        "is_genotyped": False,
-        "in_v4_release": False,
-        "status": status,
-    }
-
-
 def main():
     parser = argparse.ArgumentParser(
         description=(
             "Assemble a sample tracking table across datasets using "
-            "{version}/{tissue}/fastq_map.txt and rat_ids.txt"
+            "samples/fastq_map_current/fastq_map-{tissue}.txt and "
+            "samples/rat_ids_current/rat_ids-{tissue}.txt"
         )
-    )
-    parser.add_argument(
-        "--version",
-        type=str,
-        default="v4",
-        help="Version directory containing per-tissue inputs (default: v4)",
     )
     parser.add_argument(
         "--tissues",
@@ -185,6 +164,12 @@ def main():
         help="Output TSV file path",
     )
     parser.add_argument(
+        "--out-fastqs",
+        type=Path,
+        default=Path("samples/sample_fastqs.tsv"),
+        help="Output TSV file with columns tissue, rfid, fastq (one FASTQ per row)",
+    )
+    parser.add_argument(
         "--genotyping-log",
         type=Path,
         default=Path("geno/genotyping_log.csv"),
@@ -196,7 +181,7 @@ def main():
         default=Path("samples/relabeled.tsv"),
         help=(
             "TSV with columns tissue, original_rfid, updated_rfid for sample "
-            "mixup relabeling; empty updated_rfid marks removed samples"
+            "mixup relabeling; updated_rfid must be non-empty"
         ),
     )
     parser.add_argument(
@@ -216,132 +201,95 @@ def main():
     updated_to_original = build_updated_to_original(relabels)
     removed_reasons = load_removed(args.removed)
     rows = []
+    fastq_rows = []
     for tissue in tissues:
-        tissue_dir = Path(args.version) / tissue
-        fastq_map = tissue_dir / "fastq_map.txt"
-        rat_ids_file = tissue_dir / "rat_ids.txt"
+        fastq_map = Path("samples/fastq_map_current") / f"fastq_map-{tissue}.txt"
+        rat_ids_file = Path("samples/rat_ids_current") / f"rat_ids-{tissue}.txt"
 
-        fastq_counts = load_fastq_rfid_counts(fastq_map)
+        fastq_entries = load_fastq_entries(fastq_map)
+        fastq_counts: dict[str, int] = {}
+        for fastq_file, raw_rfid in fastq_entries:
+            fastq_counts[raw_rfid] = fastq_counts.get(raw_rfid, 0) + 1
+            fastq_rows.append({"tissue": tissue, "rfid": raw_rfid, "fastq": fastq_file})
         fastq_rfids = set(fastq_counts)
         v4_rfids = load_rat_ids(rat_ids_file)
-        removed_originals = sorted(
-            original
-            for (relabel_tissue, original), updated in relabels.items()
-            if relabel_tissue == tissue and not updated
-        )
-        relabel_targets = {
-            updated
-            for (relabel_tissue, _), updated in relabels.items()
-            if relabel_tissue == tissue and updated
-        }
-        # Skip base rows for samples explicitly removed with no genotype match,
-        # unless that RFID is now used as the kept label of another relabeled sample.
-        skip_base_rfids = {
-            original for original in removed_originals if original not in relabel_targets
-        }
-        all_rfids = sorted((fastq_rfids | v4_rfids) - skip_base_rfids)
+        missing_fastq_for_v4 = sorted(v4_rfids - fastq_rfids)
+        if missing_fastq_for_v4:
+            joined = ", ".join(missing_fastq_for_v4)
+            raise ValueError(
+                f"Samples in rat_ids-{tissue}.txt are missing from fastq_map-{tissue}.txt: {joined}"
+            )
+        for (relabel_tissue, original), updated in relabels.items():
+            if relabel_tissue != tissue:
+                continue
+            if updated not in fastq_rfids:
+                raise ValueError(
+                    f"Relabel target missing from fastq_map-{tissue}.txt: "
+                    f"original_rfid={original} updated_rfid={updated}"
+                )
 
+        all_rfids = sorted(fastq_rfids)
         for rfid in all_rfids:
             original_rfid = updated_to_original.get((tissue, rfid), rfid)
-            in_fastq_map = rfid in fastq_rfids
             in_v4_release = rfid in v4_rfids
-            if in_fastq_map and in_v4_release:
+            is_genotyped = rfid in genotyped_rfids
+            reason = removed_reasons.get((tissue, rfid), "")
+            if in_v4_release:
+                if reason:
+                    raise ValueError(
+                        "Sample is in v4 but also listed in removed.tsv: "
+                        f"tissue={tissue} rfid={rfid} reason={reason}"
+                    )
+                if not is_genotyped:
+                    raise ValueError(
+                        "Sample is in v4 but is not genotyped: "
+                        f"tissue={tissue} rfid={rfid}"
+                    )
                 status = "included"
-            elif in_fastq_map:
-                status = "__missing_exclusion_reason__"
+            elif reason:
+                status = f"removed_{reason}"
+            elif rfid.startswith("unknown-"):
+                status = "removed_no_matching_genotype_sample"
+            elif rfid.startswith("dup-"):
+                status = "removed_duplicate"
+            elif not is_genotyped:
+                status = "removed_not_genotyped"
             else:
-                status = "__missing_fastq_for_v4__"
-
+                raise ValueError(
+                    "Sample absent from v4 is genotyped but has no explicit removal reason: "
+                    f"tissue={tissue} original_rfid={original_rfid} rfid={rfid}"
+                )
             rows.append(
                 {
                     "tissue": tissue,
                     "original_rfid": original_rfid,
                     "rfid": rfid,
-                    "in_fastq_map": in_fastq_map,
                     "n_fastq_rows": fastq_counts.get(rfid, 0),
-                    "is_genotyped": rfid in genotyped_rfids,
+                    "is_genotyped": is_genotyped,
                     "in_v4_release": in_v4_release,
                     "status": status,
                 }
             )
 
-        # Keep explicit rows for samples removed due to no genotype match.
-        for original_rfid in removed_originals:
-            rows.append(
-                make_removed_row(
-                    tissue,
-                    original_rfid,
-                    "removed_no_genotype_match",
-                    in_fastq_map=original_rfid in fastq_rfids,
-                    n_fastq_rows=fastq_counts.get(original_rfid, 0),
-                )
-            )
-
-    # Apply additional removal reasons from removed.tsv with ambiguity handling.
-    by_tissue_original: dict[tuple[str, str], list[int]] = {}
-    by_tissue_rfid: dict[tuple[str, str], list[int]] = {}
-    for i, row in enumerate(rows):
-        by_tissue_original.setdefault((row["tissue"], row["original_rfid"]), []).append(i)
-        by_tissue_rfid.setdefault((row["tissue"], row["rfid"]), []).append(i)
-
-    for (tissue, removed_rfid), reason in removed_reasons.items():
-        status = f"removed_{reason}"
-        orig_matches = by_tissue_original.get((tissue, removed_rfid), [])
-        rfid_matches = by_tissue_rfid.get((tissue, removed_rfid), [])
-        target_idx: int | None = None
-
-        # Prefer exact original-sample matches, since removals apply to sample instances.
-        if len(orig_matches) == 1:
-            target_idx = orig_matches[0]
-        elif len(orig_matches) > 1:
+    known_rfids = {(str(row["tissue"]), str(row["rfid"])) for row in rows}
+    for tissue, removed_rfid in removed_reasons:
+        if (tissue, removed_rfid) not in known_rfids:
             raise ValueError(
-                f"Ambiguous removed.tsv match for tissue={tissue} rfid={removed_rfid}: "
-                "multiple original_rfid rows"
-            )
-        elif (tissue, removed_rfid) in updated_to_original:
-            # RFID is currently used as a relabeled target for another sample.
-            # Represent the removed original sample explicitly with blank final RFID.
-            new_idx = len(rows)
-            rows.append(make_removed_row(tissue, removed_rfid, status))
-            by_tissue_original.setdefault((tissue, removed_rfid), []).append(new_idx)
-            by_tissue_rfid.setdefault((tissue, ""), []).append(new_idx)
-            continue
-        elif len(rfid_matches) == 1:
-            target_idx = rfid_matches[0]
-        elif len(rfid_matches) > 1:
-            raise ValueError(
-                f"Ambiguous removed.tsv match for tissue={tissue} rfid={removed_rfid}: "
-                "multiple rfid rows"
-            )
-        else:
-            new_idx = len(rows)
-            rows.append(make_removed_row(tissue, removed_rfid, status))
-            by_tissue_original.setdefault((tissue, removed_rfid), []).append(new_idx)
-            by_tissue_rfid.setdefault((tissue, ""), []).append(new_idx)
-            continue
-
-        rows[target_idx]["status"] = status
-        if rows[target_idx]["in_v4_release"]:
-            raise ValueError(
-                "removed.tsv entry resolves to a v4-included sample: "
-                f"tissue={tissue} rfid={removed_rfid} matched_row_rfid={rows[target_idx]['rfid']}"
-            )
-    for row in rows:
-        if row["status"] == "__missing_exclusion_reason__":
-            raise ValueError(
-                "Sample in fastq_map but absent from v4 without explicit removal reason: "
-                f"tissue={row['tissue']} original_rfid={row['original_rfid']} rfid={row['rfid']}"
-            )
-        if row["status"] == "__missing_fastq_for_v4__":
-            raise ValueError(
-                "Sample in v4 rat_ids but absent from fastq_map: "
-                f"tissue={row['tissue']} original_rfid={row['original_rfid']} rfid={row['rfid']}"
+                "removed.tsv entry is not present in the fastq map for this tissue: "
+                f"tissue={tissue} rfid={removed_rfid}"
             )
 
     table = pd.DataFrame(rows)
     table = table.sort_values(["tissue", "original_rfid", "rfid"]).reset_index(drop=True)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.out, sep="\t", index=False)
+
+    fastq_table = pd.DataFrame(fastq_rows, columns=["tissue", "rfid", "fastq"])
+    fastq_table = fastq_table.sort_values(["tissue", "rfid", "fastq"]).reset_index(
+        drop=True
+    )
+    args.out_fastqs.parent.mkdir(parents=True, exist_ok=True)
+    fastq_table.to_csv(args.out_fastqs, sep="\t", index=False)
 
 
 if __name__ == "__main__":

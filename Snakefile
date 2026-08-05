@@ -39,9 +39,9 @@ rule all:
         # expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
         # expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
-        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES), # to get xQTLs for sep and merged for analysis
         expand("{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES_MERGED, modality=MODALITIES),
         expand("{v}/{tissue}/{tissue}.expression.cis_qtl_all_pvals.tsv.gz", v=VERSION, tissue=TISSUES_MERGED),
         expand("{v}/{tissue}/{tissue}.aFC.tsv", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.expression.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED),
+        expand("{v}/{tissue}/{tissue}.{modality}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED, modality=MODALITIES),
 

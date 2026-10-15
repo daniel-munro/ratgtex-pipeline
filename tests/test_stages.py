@@ -23,7 +23,7 @@ class StageTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / '.snakemake')
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
-        self.config = yaml.safe_load((ROOT / 'config.yaml').read_text())
+        self.config = yaml.safe_load((ROOT / 'config/config.yaml').read_text())
         self.config.update(version='v5', tissues={'Combined': ['First', 'Second']},
                            datasets={'First': {'read_length': 100, 'fastq_path': 'reads/one', 'genotype_panel': 'geno'},
                                     'Second': {'read_length': 150, 'fastq_path': 'reads/two', 'genotype_panel': 'geno'}})
@@ -63,19 +63,6 @@ class StageTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             self.setup_projects()
 
-    def test_reconfigure_preserves_interactive_config_and_previous_settings(self):
-        self.setup_projects()
-        project = self.root / 'v5/Combined'
-        interactive = project / 'pheast/config.yml'
-        interactive.write_text('interactive: true\n')
-        previous = (project / 'pheast/config.qtl.yml').read_text()
-        self.config['pantry']['pheast']['qtl_min_allele_count'] = 20
-        run_stage.configure_project(self.config, 'Combined', self.root)
-        self.assertEqual(interactive.read_text(), 'interactive: true\n')
-        saved = list((project / 'config_history').iterdir())
-        self.assertEqual(len(saved), 2)  # QTL and TWAS generated settings both changed.
-        self.assertIn(previous, [p.read_text() for p in saved])
-
     def test_combined_modality_headers_and_feature_groups(self):
         output = self.root / 'phenos/output'
         output.mkdir(parents=True)
@@ -104,21 +91,40 @@ class StageTests(unittest.TestCase):
         args = SimpleNamespace(profile='slurm', jobs=10, dry_run=True, plan=False)
         for stage in ['align', 'identity_qc', 'genotypes', 'cross_modality', 'qtl_extra']:
             with self.subTest(stage=stage), patch.object(run_stage, 'ROOT', self.root), patch.object(run_stage.subprocess, 'run') as mock:
-                run_stage.run(self.config, stage, self.root / 'config.yaml', args)
+                run_stage.run(self.config, stage, self.root / 'config/config.yaml', args)
                 mock.assert_called_once()
                 self.assertEqual(mock.call_args.kwargs['cwd'], self.root)
                 command = mock.call_args.args[0]
                 self.assertEqual(command[1], stage)
                 self.assertIn('--dry-run', command)
                 self.assertIn('slurm', command)
-                self.assertEqual(command[command.index('--configfile') + 1], str(self.root / 'config.yaml'))
+                self.assertEqual(command[command.index('--configfile') + 1], str(self.root / 'config/config.yaml'))
+
+    def test_setup_exports_selected_lists_without_launching_processing(self):
+        directory = self.root / 'config'
+        directory.mkdir()
+        self.config['tissues'] = {'Combined': ['First', 'Second'], 'First': ['First']}
+        self.config['datasets']['Unused'] = dict(self.config['datasets']['First'])
+        args = SimpleNamespace(profile='slurm', jobs=10, dry_run=True, plan=False)
+        with patch.object(run_stage, 'ROOT', self.root), patch.object(run_stage.subprocess, 'run') as mock:
+            run_stage.run(self.config, 'setup', directory / 'config.yaml', args)
+            self.assertFalse((directory / 'datasets.txt').exists())
+            self.assertFalse((self.root / 'v5/First/phenos').exists())
+            args.dry_run = False
+            with patch.object(run_stage.subprocess, 'check_output', return_value='revision\n'):
+                run_stage.run(self.config, 'setup', directory / 'config.yaml', args)
+            mock.assert_not_called()
+        self.assertEqual((directory / 'datasets.txt').read_text(), 'First\nSecond\n')
+        self.assertEqual((directory / 'tissues.txt').read_text(), 'Combined\nFirst\n')
+        settings = yaml.safe_load((self.root / 'v5/First/phenos/config.yml').read_text())
+        self.assertEqual(settings['ref_genome'], str(self.root / self.config['ref_genome']))
 
     def test_pantry_execution_is_not_a_runner_stage(self):
         args = SimpleNamespace(profile='slurm', jobs=10, dry_run=False, plan=False)
         for stage in ['phenotypes', 'qtl', 'twas']:
             with self.subTest(stage=stage), patch.object(run_stage.subprocess, 'run') as mock:
                 with self.assertRaisesRegex(ValueError, 'Run Pantry.*directly'):
-                    run_stage.run(self.config, stage, self.root / 'config.yaml', args)
+                    run_stage.run(self.config, stage, self.root / 'config/config.yaml', args)
                 mock.assert_not_called()
 
 

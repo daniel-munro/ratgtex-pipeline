@@ -8,6 +8,12 @@ def datasets(config):
     return list(dict.fromkeys(d for members in tissues(config).values() for d in members))
 
 
+def write_config_lists(config, directory):
+    """Export selected dataset and tissue IDs beside the main configuration."""
+    for filename, names in [('datasets.txt', datasets(config)), ('tissues.txt', tissues(config))]:
+        (directory / filename).write_text(''.join(f'{name}\n' for name in sorted(names, key=str.casefold)))
+
+
 def phenotype_config(config, name, root):
     members = tissues(config).get(name, [name])
     settings = config['datasets'][members[0]]

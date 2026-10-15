@@ -8,7 +8,7 @@ def ids(tissue):
 
 
 if not workflow.overwrite_configfiles:
-    configfile: 'config.yaml'
+    configfile: 'config/config.yaml'
 # These steps are short and will not be submitted as cluster jobs:
 # (Each included snakefile specifies its own localrules)
 localrules:

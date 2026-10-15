@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Set up Pantry projects and run RatGTEx steps before and after manual Pantry runs."""
 import argparse
-import hashlib
 import json
 import shlex
 import shutil
@@ -10,10 +9,10 @@ from pathlib import Path
 
 import yaml
 
-from workflow_config import datasets, phenotype_config, pheast_config
+from workflow_config import datasets, phenotype_config, pheast_config, write_config_lists
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGES = ['setup', 'configure', 'align', 'identity_qc', 'genotypes', 'cross_modality', 'qtl_extra']
+STAGES = ['setup', 'align', 'identity_qc', 'genotypes', 'cross_modality', 'qtl_extra']
 
 
 def read_ids(path):
@@ -65,7 +64,7 @@ def setup(config, root):
         for module, source_module in [('phenos', 'phenotyping'), ('pheast', 'pheast')]:
             shutil.copytree(source / source_module, project / module,
                             ignore=shutil.ignore_patterns('input', 'intermediate', 'output', '.snakemake', '__pycache__'))
-        configure_project(config, name, root)
+        write_project_configs(config, name, root)
         shutil.copyfile(project / 'pheast/config.qtl.yml', project / 'pheast/config.yml')
         (project / 'ratgtex_setup.json').write_text(json.dumps(
             {'pantry_source': str(source), 'pantry_revision': source_revision,
@@ -88,19 +87,11 @@ def setup(config, root):
                              version / tissue / 'phenos/intermediate' / relative)
 
 
-def configure_project(config, name, root):
+def write_project_configs(config, name, root):
     project = root / config['version'] / name
 
     def write_config(path, settings):
-        content = yaml.safe_dump(settings, sort_keys=False)
-        # These are generated output configs. Keep previous settings inspectable.
-        if path.exists() and path.read_text() != content:
-            old = path.read_bytes()
-            history = project / 'config_history'
-            history.mkdir(exist_ok=True)
-            tag = hashlib.sha256(old).hexdigest()[:12]
-            (history / f'{path.parent.name}.{path.name}.{tag}').write_bytes(old)
-        path.write_text(content)
+        path.write_text(yaml.safe_dump(settings, sort_keys=False))
 
     settings = phenotype_config(config, name, root)
     if name in datasets(config):
@@ -113,8 +104,6 @@ def configure_project(config, name, root):
         write_config(project / f'pheast/config.{analysis}.yml', pheast_config(config, name, root, analysis))
         (project / f'pheast/Snakefile.{analysis}').write_text(
             original.replace("configfile: 'config.yml'", f"configfile: 'config.{analysis}.yml'"))
-    # Configure only the named analysis configs on subsequent runs; preserve config.yml
-    # for independent interactive analyses after initial setup.
 
 
 def run(config, stage, config_path, args):
@@ -122,17 +111,11 @@ def run(config, stage, config_path, args):
         raise ValueError(f'Unknown RatGTEx stage: {stage}. Run Pantry phenotyping and Pheast directly in their project directories.')
     if stage == 'setup':
         if args.dry_run or args.plan:
-            print('Setup preview: create new Pantry projects for ' + ', '.join(
+            print('Setup preview: export dataset/tissue lists and create new Pantry projects for ' + ', '.join(
                 dict.fromkeys(datasets(config) + list(config['tissues']))))
         else:
             setup(config, ROOT)
-    elif stage == 'configure':
-        names = list(dict.fromkeys(datasets(config) + list(config['tissues'])))
-        for name in names:
-            if args.dry_run or args.plan:
-                print(f'Configure preview: {config["version"]}/{name}')
-            else:
-                configure_project(config, name, ROOT)
+            write_config_lists(config, config_path.parent)
     else:
         command = ['snakemake', stage, '--snakefile', 'Snakefile', '--profile', args.profile,
                    '--jobs', str(args.jobs), '--configfile', str(config_path)]
@@ -146,7 +129,7 @@ def run(config, stage, config_path, args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('stage', choices=STAGES)
-    parser.add_argument('--config', type=Path, default=ROOT / 'config.yaml')
+    parser.add_argument('--config', type=Path, default=ROOT / 'config/config.yaml')
     parser.add_argument('--profile', default='slurm')
     parser.add_argument('--jobs', type=int, default=10)
     parser.add_argument('-n', '--dry-run', action='store_true')

@@ -64,9 +64,9 @@ latency-wait: 60
 
 This uses the `snakemake-executor-plugin-slurm` Snakemake plugin. The `tensorqtl` steps should be run on GPU for reasonable runtime, so they are specified by name here to override the default resources. Adjust as needed for your cluster. Additional resources are specified within some of the snakemake rules, which are passed to slurm when those jobs are submitted. Alternatively, you can run snakemake on an interactive node.
 
-#### `config.yaml`
+#### `config/config.yaml`
 
-`config.yaml` defines source **datasets**, analysis **tissues**, genotype panels, modalities, reference files, and Pantry settings.
+`config/config.yaml` defines source **datasets**, analysis **tissues**, genotype panels, modalities, reference files, and Pantry settings.
 
 - A **dataset** is a tissue-specific sequencing collection from a source study, such as NAcc1.
 - A **tissue** is the tissue-level analysis assembled from one or more datasets, such as NAcc from NAcc1–4 or Brain from Brain alone.
@@ -96,6 +96,24 @@ Only datasets referenced by `tissues` are selected. Tissue membership replaces t
 
 The checked-in configuration still describes v4 inputs. Choose the v5 version, genotype panel, datasets/tissues, and modalities before setting up a new release. Paths in the main config are relative to the RatGTEx repository; generated Pantry configs use absolute input paths. Restore or configure the reference FASTA/GTF and TWAS SNP list before running new processing; the paths currently configured for those inputs were absent during this review.
 
+The current release configuration lives in `config/`:
+
+```text
+config/
+    config.yaml       # Authoritative processing configuration
+    tissue_info.tsv   # Tissue names, anatomical categories, and colors
+    datasets.txt      # Generated list of selected source datasets
+    tissues.txt       # Generated list of tissue-level analyses
+```
+
+Paths inside `config/config.yaml` remain relative to the repository root. Tissue metadata is maintained separately; `setup` generates the two ID lists from the main config while preparing the Pantry projects:
+
+```shell
+python scripts/run_stage.py setup
+```
+
+With `--config <path>`, lists are written beside that configuration file. `scripts/qc/sample_tracking.py` defaults to `config/datasets.txt` (its existing `--tissues` argument can select a different dataset-list file). Archived v4 configuration and lists remain under `v4/`; current code uses `config/`.
+
 ### Dataset-specific input files
 
 #### FASTQ files
@@ -107,7 +125,7 @@ The RNA-seq FASTQ files can be single-read or paired-end. There can be more than
 A tab-delimited file with no header containing the paths to each FASTQ file and the rat IDs they correspond to. Or, for paired-end reads, each row contains the first FASTQ path, second FASTQ path, and rat ID per file pair.
 
 - If multiple files map to the same ID, i.e. the ID appears in multiple rows, reads from those files will be aligned into one BAM file.
-- You can use the `fastq_path` parameter in `config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
+- You can use the `fastq_path` parameter in `config/config.yaml` to specify the encompassing directory as an absolute or relative path. That way `fastq_map.txt` can just contain the remainder of the path to each file (including any subdirectories as necessary).
 - Any listed files whose rat IDs are not in `{version}/{dataset}/rat_ids.txt` will be ignored.
 - If a dataset includes a mix of single-end and paired-end samples, omit `paired_end` from the dataset config so the pipeline infers pairing per row.
 
@@ -124,22 +142,21 @@ A VCF file containing the genotypes for one or more tissues. If multiple tissues
 From the RatGTEx repository, use the stage runner for setup and the RatGTEx processing steps:
 
 ```shell
-python scripts/run_stage.py align --config config.yaml -n
+python scripts/run_stage.py align --config config/config.yaml -n
 ```
 
-`--profile slurm` and `--jobs 10` are defaults. Remove `-n` to execute a processing stage. `--plan` prints commands without invoking Snakemake or changing files; `setup -n` and `configure -n` preview their actions without writing files. A processing dry run requires its input data and project setup to be present. Pantry phenotyping and Pheast are run manually in individual project directories; the stage runner never launches them.
+`--profile slurm` and `--jobs 10` are defaults. Remove `-n` to execute a processing stage. `--plan` prints commands without invoking Snakemake or changing files; `setup -n` previews its actions without writing files. A processing dry run requires its input data and project setup to be present. Pantry phenotyping and Pheast are run manually in individual project directories; the stage runner never launches them.
 
 | Stage            | Action                                                                                                                                        |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | `align`          | Align selected source datasets and produce BAM indexes and STAR summaries.                                                                    |
 | `identity_qc`    | Produce RNA/genotype identity summaries, generating alignments as needed.                                                                     |
 | `setup`          | Copy new self-contained Pantry projects, generate configs, assemble tissue sample lists/maps, and link reusable inputs.                       |
-| `configure`      | Regenerate phenotyping and named QTL/TWAS configs after main-config parameter changes; preserve previous configs in `config_history/`.        |
 | `genotypes`      | Generate tissue PLINK files.                                                                                                                  |
 | `cross_modality` | Rebuild combined phenotype tables from all configured modalities.                                                                             |
 | `qtl_extra`      | Generate RatGTEx significant-pair, expression p-value, aFC, and trans-QTL outputs after Pheast QTL mapping. Requires the expression modality. |
 
-For processing stages, the runner invokes the main RatGTEx Snakefile once with the selected profile. Setup and configuration can prepare all selected projects together, but each Pantry project has its own independent Snakemake invocation, logs, and scheduler. Launch several projects in separate sessions when desired, and troubleshoot or rerun an individual project directly.
+For processing stages, the runner invokes the main RatGTEx Snakefile once with the selected profile. Setup prepares all selected projects together, but each Pantry project has its own independent Snakemake invocation, logs, and scheduler. Launch several projects in separate sessions when desired, and troubleshoot or rerun an individual project directly.
 
 The RatGTEx-native targets are also available directly:
 
@@ -155,13 +172,13 @@ Without a target, Snakemake uses `default_stage` (initially `align`). Its suppor
 
 ### Identity review before phenotyping
 
-Prepare source-dataset `rat_ids.txt` and `fastq_map.txt` inputs, then run `align` and `identity_qc`. Automatic generation of source-dataset sample files from tracking information remains a separate Todo.
+Prepare source-dataset `rat_ids.txt` and `fastq_map.txt` inputs, run `setup` once, then run `align` and `identity_qc`. Automatic generation of source-dataset sample files from tracking information remains a separate Todo.
 
 Review identity matches manually. For unresolved samples, list their IDs plus a positive control in `{version}/{dataset}/qc/samples_without_matches.txt` and request `{version}/{dataset}/qc/all_rats_summary.tsv` with Snakemake. Update genotypes if newly identified animals must be added.
 
 Record relabeling/removal decisions in the sample tracking information and update the processing maps/lists accordingly. Delete BAMs for changed identities and regenerate alignments and dependent outputs. Repeat QC before continuing. Genotype-aware alignment makes rebuilding these BAMs necessary.
 
-After identity decisions are settled, run `setup`. The subsequent handoffs are explicit:
+After identity decisions are settled, update the affected sample lists, maps, and links in the prepared projects as needed. The subsequent handoffs are explicit:
 
 1. Run Pantry phenotyping manually for each source dataset. Independent datasets can run concurrently.
 2. For a merged tissue, finish its constituent datasets' phenotyping first, then run the merged tissue's Pantry project manually. Unrelated tissues can proceed independently.
@@ -192,7 +209,7 @@ snakemake --profile slurm -j20 -n
 
 Remove `-n` to run. Start another tissue in a separate session to run it concurrently. For merged NAcc, run the same command inside `v5/NAcc/phenos` after NAcc1–4 have finished.
 
-Each Pheast project has `config.qtl.yml`/`Snakefile.qtl` and `config.twas.yml`/`Snakefile.twas`. Select the desired entry point yourself. Initial `config.yml` defaults to QTL; subsequent `configure` calls leave that file alone so it can be used for additional interactive analyses. For example:
+Each Pheast project has `config.qtl.yml`/`Snakefile.qtl` and `config.twas.yml`/`Snakefile.twas`. Select the desired entry point yourself. Initial `config.yml` defaults to QTL and can be edited for additional interactive analyses. For example:
 
 ```shell
 cd v5/Brain/pheast
@@ -201,7 +218,7 @@ snakemake --snakefile Snakefile.qtl --profile slurm -j10 -n
 snakemake --snakefile Snakefile.twas --profile slurm -j10 -n
 ```
 
-Use `configure` for parameter changes after setup. Changes to tissue membership, sample lists, or merge-product links require reviewing/rebuilding the corresponding setup inputs and links; `configure` only regenerates configuration files, not tissue membership or symlinks.
+Setup writes the initial Pantry configs once. If parameters change later, edit the relevant project configs manually; changing the main config does not rewrite existing Pantry projects. Changes to sample membership likewise require updating the affected sample lists, maps, and links manually.
 
 Combined tissues reuse source-dataset sample-level products through symlinks, then compute tissue-dependent products in their own projects. Their maps contain absolute FASTQ paths, so mixed read lengths/layouts retain their original source quantification. Overlapping animal IDs across constituent datasets raise an error rather than silently deduplicating libraries. Decide how those libraries should be combined before proceeding. The old version-specific setup scripts remain historical documentation; the stage runner replaces them for new project setup.
 

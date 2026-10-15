@@ -154,8 +154,8 @@ def main():
     parser.add_argument(
         "--tissues",
         type=Path,
-        default=Path("tissues.dup.txt"),
-        help="File listing datasets/tissues to include, one per line",
+        default=Path("config/datasets.txt"),
+        help="File listing source dataset IDs to include, one per line",
     )
     parser.add_argument(
         "--out",

@@ -35,19 +35,24 @@ def load_fastq_map(map_file: Path, fastq_dir: Path, paired_end=None) -> dict:
 VERSION = config["version"]
 GENOME_PREFIX = config["ref_genome"].removesuffix(".fa")
 ANNO_PREFIX = config["ref_anno"].removesuffix(".gtf")
-TISSUES = config["run"]
-# Get list of tissues pre-merge for things like QC
-TISSUES_SEP = [t for t in TISSUES if t not in config["merged_tissues"]]
-TISSUES_MERGED = [t for t in TISSUES if not t[-1].isdigit()]
+import sys
+sys.path.insert(0, str(Path(workflow.basedir) / 'scripts'))
+from workflow_config import datasets
+
+DATASETS = datasets(config)
+TISSUES = list(config['tissues'])
+MODALITIES = list(config['modalities'])
+grouped_modality = {m: s['grouped'] for m, s in config['modalities'].items()}
+if config['cross_modality']:
+    grouped_modality['cross_modality'] = True
 FASTQ_MAPS = {}
-for tissue in TISSUES:
-    if tissue in config["merged_tissues"]:
-        config["tissues"][tissue] = {}
-        dsets = config["merged_tissues"][tissue]
-        geno_datasets = [config["tissues"][dset]["geno_dataset"] for dset in dsets]
-        assert len(set(geno_datasets)) == 1, f"All merged tissues must have the same geno_dataset: {tissue}"
-        config["tissues"][tissue]["geno_dataset"] = geno_datasets[0]
-    else:
-        fastq_path = Path(config["tissues"][tissue]["fastq_path"])
-        paired_end = config["tissues"][tissue].get("paired_end", None)
-        FASTQ_MAPS[tissue] = load_fastq_map(f"{VERSION}/{tissue}/fastq_map.txt", fastq_path, paired_end)
+for dataset in DATASETS:
+    settings = config['datasets'][dataset]
+    FASTQ_MAPS[dataset] = load_fastq_map(
+        f"{VERSION}/{dataset}/fastq_map.txt", Path(settings['fastq_path']), settings.get('paired_end'))
+GENOTYPE_PANELS = {d: settings['genotype_panel'] for d, settings in config['datasets'].items()}
+for tissue, members in config['tissues'].items():
+    genotype_panels = {config['datasets'][d]['genotype_panel'] for d in members}
+    if len(genotype_panels) != 1:
+        raise ValueError(f'All datasets in tissue {tissue} must share a genotype panel')
+    GENOTYPE_PANELS[tissue] = genotype_panels.pop()

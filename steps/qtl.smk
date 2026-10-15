@@ -1,7 +1,7 @@
 rule vcf_to_plink:
     """Get SNPs that are not monomorphic in a given set of samples."""
     input:
-        vcf = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz",
+        vcf = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz",
         samples = "{version}/{tissue}/rat_ids.txt"
     output:
         multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam")
@@ -153,8 +153,8 @@ rule assemble_log_expression:
 rule aFC:
     """Get effect size (allelic fold change) for top association per gene and all significant eQTLs."""
     input:
-        vcf = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz",
-        vcfi = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz.tbi",
+        vcf = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz",
+        vcfi = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz.tbi",
         bed = "{version}/{tissue}/{tissue}.expr.log2.bed.gz",
         bedi = "{version}/{tissue}/{tissue}.expr.log2.bed.gz.tbi",
         qtl = "{version}/{tissue}/pheast/output/qtl/expression.cis_qtl.txt.gz",

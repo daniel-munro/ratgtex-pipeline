@@ -37,11 +37,11 @@ rule individual_vcf:
     This is used by STAR to consider the individual's variants for better alignment.
     """
     input:
-        "geno/{geno_dataset}.vcf.gz"
+        "geno/{genotype_panel}.vcf.gz"
     output:
-        "geno/individual/{geno_dataset}/{rat_id}.vcf.gz"
+        "geno/individual/{genotype_panel}/{rat_id}.vcf.gz"
     params:
-        outdir = "geno/individual/{geno_dataset}"
+        outdir = "geno/individual/{genotype_panel}"
     shell:
         """
         mkdir -p {params.outdir}
@@ -91,8 +91,8 @@ rule star_align:
     """Align RNA-Seq reads for a sample using STAR."""
     input:
         fastq = fastq_input,
-        vcf = lambda w: f"geno/individual/{config['tissues'][w.tissue]['geno_dataset']}/{w.rat_id}.vcf.gz",
-        index = lambda w: f"ref/star_index_{config['tissues'][w.tissue]['read_length']}/SAindex"
+        vcf = lambda w: f"geno/individual/{GENOTYPE_PANELS[w.tissue]}/{w.rat_id}.vcf.gz",
+        index = lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}/SAindex"
     output:
         # RSEM requires transcriptome-sorted BAM.
         coord = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
@@ -100,7 +100,7 @@ rule star_align:
         log = "{version}/{tissue}/star_out/{rat_id}.Log.final.out",
     params:
         fastq_list = fastq_star_param,
-        index_dir = lambda w: f"ref/star_index_{config['tissues'][w.tissue]['read_length']}",
+        index_dir = lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}",
         prefix = "{version}/{tissue}/star_out/{rat_id}.",
         read_groups = read_groups,
         out_dir = "{version}/{tissue}/star_out"

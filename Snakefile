@@ -7,19 +7,8 @@ def ids(tissue):
         return f.read().splitlines()
 
 
-configfile: 'config.yaml'
-# For each tissue, specify: read_length, fastq_path, paired_end, geno_dataset
-
-MODALITIES = ["alt_polyA", "alt_TSS", "expression", "isoforms", "splicing", "stability"]
-grouped_modality = {
-    "alt_polyA": True,
-    "alt_TSS": True,
-    "expression": False,
-    "isoforms": True,
-    "splicing": True,
-    "stability": False,
-}
-
+if not workflow.overwrite_configfiles:
+    configfile: 'config.yaml'
 # These steps are short and will not be submitted as cluster jobs:
 # (Each included snakefile specifies its own localrules)
 localrules:
@@ -29,19 +18,36 @@ include: "steps/setup.smk"
 include: "steps/align.smk"
 include: "steps/qc.smk"
 include: "steps/qtl.smk"
+include: "steps/phenotypes.smk"
+
+def stage_inputs(stage):
+    if stage == 'align':
+        return expand('{v}/{tissue}/qc/{tissue}.star_stats.tsv', v=VERSION, tissue=DATASETS)
+    if stage == 'identity_qc':
+        return expand('{v}/{tissue}/qc/rna_to_geno_summary.tsv', v=VERSION, tissue=DATASETS)
+    if stage == 'genotypes':
+        return expand('{v}/{tissue}/geno.{ext}', v=VERSION, tissue=TISSUES, ext=['bed', 'bim', 'fam'])
+    if stage == 'qtl_extra':
+        return (
+            expand('{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz', v=VERSION, tissue=TISSUES, modality=MODALITIES)
+            + expand('{v}/{tissue}/{tissue}.expression.cis_qtl_all_pvals.tsv.gz', v=VERSION, tissue=TISSUES)
+            + expand('{v}/{tissue}/{tissue}.aFC.tsv', v=VERSION, tissue=TISSUES)
+            + expand('{v}/{tissue}/{tissue}.{modality}.trans_qtl_pairs.txt.gz', v=VERSION, tissue=TISSUES, modality=MODALITIES))
+    raise ValueError(f'Unknown top-level stage: {stage}')
+
 
 rule all:
-    """List any files here that you want to generate by default
-    (i.e. without having to specify on command line when running snakemake).
-    """
-    input:
-        expand("{v}/{tissue}/qc/{tissue}.star_stats.tsv", v=VERSION, tissue=TISSUES_SEP),
-        # expand("{v}/{tissue}/qc/rna_to_geno_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
-        # expand("{v}/{tissue}/qc/all_rats_summary.tsv", v=VERSION, tissue=TISSUES_SEP),
-        # expand("{v}/{tissue}/qc/{tissue}.sex_concordance.txt", v=VERSION, tissue=TISSUES_SEP),
-        expand("{v}/{tissue}/geno.bim", v=VERSION, tissue=TISSUES), # to get xQTLs for sep and merged for analysis
-        expand("{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz", v=VERSION, tissue=TISSUES_MERGED, modality=MODALITIES),
-        expand("{v}/{tissue}/{tissue}.expression.cis_qtl_all_pvals.tsv.gz", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.aFC.tsv", v=VERSION, tissue=TISSUES_MERGED),
-        expand("{v}/{tissue}/{tissue}.{modality}.trans_qtl_pairs.txt.gz", v=VERSION, tissue=TISSUES_MERGED, modality=MODALITIES),
+    default_target: True
+    input: stage_inputs(config['default_stage'])
 
+rule align:
+    input: stage_inputs('align')
+
+rule identity_qc:
+    input: stage_inputs('identity_qc')
+
+rule genotypes:
+    input: stage_inputs('genotypes')
+
+rule qtl_extra:
+    input: stage_inputs('qtl_extra')

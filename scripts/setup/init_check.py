@@ -45,15 +45,15 @@ stats = {}
 with open(f"{args.version}/{args.tissue}/rat_ids.txt", "r") as f:
     ids = f.read().splitlines()
 
-config = yaml.safe_load(open("config.yaml"))["tissues"][args.tissue]
+config = yaml.safe_load(open("config.yaml"))["datasets"][args.tissue]
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired = config.get("paired_end", None)
-geno_dataset = config["geno_dataset"]
+genotype_panel = config["genotype_panel"]
 
 print(f"INFO: Paired-end configuration: {paired}")
 print(f"INFO: Read length is set to {read_length} in config.yaml. Ensure this is correct.")
-print(f"INFO: Using geno/{geno_dataset}.vcf.gz")
+print(f"INFO: Using geno/{genotype_panel}.vcf.gz")
 
 map_file = f"{args.version}/{args.tissue}/fastq_map.txt"
 fastqs = load_fastq_lists(map_file, fastq_path, paired)
@@ -74,7 +74,7 @@ for rat_id in ids:
             raise FileNotFoundError(f"{fastq} not found")
 print("PASS: All necessary FASTQ files exist")
 
-vcf = pysam.VariantFile(f"geno/{geno_dataset}.vcf.gz")
+vcf = pysam.VariantFile(f"geno/{genotype_panel}.vcf.gz")
 samples = list(vcf.header.samples)
 missing = [id for id in ids if not id in samples]
 if len(missing) > 0:

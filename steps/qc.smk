@@ -32,8 +32,8 @@ rule qc_mixups_test_snps_vcf:
     Subset to only exon SNPs, SNPs with MAF >= 0.2, and SNPs with <10% missing values.
     """
     input:
-        vcf = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz",
-        vcfi = lambda w: f"geno/{config['tissues'][w.tissue]['geno_dataset']}.vcf.gz.tbi",
+        vcf = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz",
+        vcfi = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz.tbi",
         regions = "ref/exon_regions.tsv.gz",
     output:
         vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
@@ -62,6 +62,7 @@ rule qc_mixups_ASEReadCounter:
         vcf = "{version}/{tissue}/qc/test_snps.vcf.gz",
         vcfi = "{version}/{tissue}/qc/test_snps.vcf.gz.tbi",
         bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
+        bai = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam.bai",
     output:
         "{version}/{tissue}/qc/test_snps/{rat_id}.readcounts.txt"
     params:

@@ -14,7 +14,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/setup'))
-from genotype_samples import prepare_samples
+from genotype_samples import metadata_sample_ids, prepare_samples
 
 
 class GenotypeTests(unittest.TestCase):
@@ -23,6 +23,12 @@ class GenotypeTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(dir=ROOT / '.snakemake')
         self.addCleanup(self.temp.cleanup)
         self.work = Path(self.temp.name)
+        self.metadata = self.work / 'metadata.csv'
+        pd.DataFrame([
+            ('rat_A', 'Rattaca1', 'x'), ('rat_A', 'Riptide2', 'x'),
+            ('00079299E6', 'ddGBS_HSR_96_WF1', 'AATATGG'),
+            ('absent', 'arbitrary_library', 'barcode'),
+        ], columns=['rfid', 'library_name', 'barcode']).to_csv(self.metadata, index=False)
 
     def test_sample_coverage_and_ambiguity(self):
         w = self.work
@@ -32,18 +38,51 @@ class GenotypeTests(unittest.TestCase):
         psam.write_text('#IID\tSEX\nRattaca1_rat_A_x\t1\n')
         outputs = [w / name for name in ['keep', 'rename', 'coverage', 'counts']]
         with self.assertRaisesRegex(ValueError, 'Missing or ambiguous'):
-            prepare_samples([sample], ['dataset'], [psam], *outputs)
+            prepare_samples([sample], ['dataset'], [psam], self.metadata, *outputs)
         coverage = pd.read_csv(outputs[2], sep='\t')
         self.assertEqual(list(coverage.status), ['present', 'missing'])
         sample.write_text('rat_A\n')
         psam.write_text(psam.read_text() + 'Riptide2_rat_A_x\t1\n')
         with self.assertRaisesRegex(ValueError, 'Missing or ambiguous'):
-            prepare_samples([sample], ['dataset'], [psam], *outputs)
+            prepare_samples([sample], ['dataset'], [psam], self.metadata, *outputs)
         self.assertEqual(pd.read_csv(outputs[2], sep='\t').status[0], 'ambiguous')
         other = w / 'other.psam'
         other.write_text('#IID\tSEX\nRattaca1_rat_A_x\t2\n')
         with self.assertRaisesRegex(ValueError, 'PSAM differs'):
-            prepare_samples([sample], ['dataset'], [psam, other], *outputs)
+            prepare_samples([sample], ['dataset'], [psam, other], self.metadata, *outputs)
+
+    def test_ddgbs_wf1_library_component_is_not_part_of_rfid(self):
+        w = self.work
+        sample = w / 'rats.txt'
+        sample.write_text('00079299E6\n')
+        psam = w / 'samples.psam'
+        psam.write_text('#IID\tSEX\nddGBS_HSR_96_WF1_00079299E6\t1\n')
+        outputs = [w / name for name in ['keep', 'rename', 'coverage', 'counts']]
+        prepare_samples([sample], ['Brain'], [psam], self.metadata, *outputs)
+        coverage = pd.read_csv(outputs[2], sep='\t', dtype=str)
+        self.assertEqual(coverage.rfid.tolist(), ['00079299E6'])
+        self.assertEqual(coverage.status.tolist(), ['present'])
+        self.assertEqual(outputs[1].read_text().splitlines()[-1],
+                         '0\tddGBS_HSR_96_WF1_00079299E6\t0\t00079299E6')
+
+    def test_metadata_join_supports_arbitrary_library_names_and_rejects_conflicts(self):
+        w = self.work
+        sample = w / 'rats.txt'
+        sample.write_text('animal_with_underscores\n')
+        psam = w / 'samples.psam'
+        psam.write_text('#IID\tSEX\narbitrary_library_v3_animal_with_underscores_tag\t1\n')
+        pd.DataFrame([('animal_with_underscores', 'arbitrary_library_v3', 'tag')],
+                     columns=['rfid', 'library_name', 'barcode']).to_csv(self.metadata, index=False)
+        outputs = [w / name for name in ['keep', 'rename', 'coverage', 'counts']]
+        prepare_samples([sample], ['dataset'], [psam], self.metadata, *outputs)
+        self.assertEqual(pd.read_csv(outputs[2], sep='\t').status.tolist(), ['present'])
+        psam.write_text(psam.read_text() + 'unannotated_sample\t2\n')
+        with self.assertRaisesRegex(ValueError, 'absent from genotype metadata'):
+            prepare_samples([sample], ['dataset'], [psam], self.metadata, *outputs)
+        pd.DataFrame([('B_C', 'A', 'x'), ('C', 'A_B', 'y')],
+                     columns=['rfid', 'library_name', 'barcode']).to_csv(self.metadata, index=False)
+        with self.assertRaisesRegex(ValueError, 'Conflicting metadata RFIDs'):
+            metadata_sample_ids(self.metadata)
 
     def test_miniature_workflow(self):
         w = self.work
@@ -56,6 +95,9 @@ class GenotypeTests(unittest.TestCase):
         pysam.faidx(str(fasta))
         with gzip.open(w / 'ref/exon_regions.tsv.gz', 'wt') as handle:
             handle.write('chr1\t1\t30\nchr2\t1\t30\n')
+        pd.DataFrame([('rat_A', 'Rattaca1', 'x'), ('rat_B', 'ddGBS_HSR_1', 'barcode'),
+                      ('rat_C', 'LSWrnaseq', 'LSWNNNNN'), ('unexpected', 'Riptide1', 'x')],
+                     columns=['rfid', 'library_name', 'barcode']).to_csv(self.metadata, index=False)
         ids = ['Rattaca1_rat_A_x', 'ddGBS_HSR_1_rat_B', 'LSWrnaseq_rat_C_LSWNNNNN', 'Riptide1_unexpected_x']
         for chrom in [1, 2]:
             vcf = w / f'input/chr{chrom}.vcf'
@@ -73,7 +115,7 @@ class GenotypeTests(unittest.TestCase):
                 records.append(f'{chrom}\t{pos}\t{name}{chrom}\t{ref}\t{alt}\t.\tPASS\tEAF=0.7\tGT:DS\t' + '\t'.join(calls) + '\n')
             vcf.write_text(header + ''.join(records))
             self.command(['plink2', '--vcf', str(vcf), 'dosage=DS', '--make-pgen', '--out', str(w / f'input/chr{chrom}')])
-        config = dict(version='vtest', genotypes=dict(panel='test', source_prefix='input/chr{chrom}', chromosomes=[1, 2]),
+        config = dict(version='vtest', genotypes=dict(panel='test', source_prefix='input/chr{chrom}', metadata=str(self.metadata), chromosomes=[1, 2]),
                       ref_genome='ref/genome.fa', ref_anno='ref/annotation.gtf',
                       tissues={'First': ['First'], 'Second': ['Second']},
                       datasets={name: dict(read_length=100, fastq_path='reads') for name in ['First', 'Second']},

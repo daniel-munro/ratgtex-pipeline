@@ -22,7 +22,8 @@ rule genotypes:
 rule genotype_sample_map:
     input:
         samples=expand(config['version'] + '/{dataset}/rat_ids.txt', dataset=datasets(config)),
-        psams=[GSOURCE.format(chrom=c) + '.psam' for c in GC]
+        psams=[GSOURCE.format(chrom=c) + '.psam' for c in GC],
+        metadata=G['metadata']
     output:
         keep=GI + '/samples.keep.tsv',
         rename=GI + '/samples.rename.tsv'

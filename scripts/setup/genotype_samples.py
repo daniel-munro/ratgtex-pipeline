@@ -1,18 +1,29 @@
 """Map requested biological rats to PLINK samples without guessing among replicates."""
-import re
 from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
 
-PATTERNS = [
-    r'^ddGBSR?_[^_]+_[^_]+_(.+)$',
-    r'^(?:Riptide|Rattaca)[^_]+_(.+)_[^_]+$',
-    r'^LSWrnaseq_(.+)_LSWNNNNN$',
-]
+
+def metadata_sample_ids(path):
+    """Construct PSAM join keys from declared metadata fields, without parsing IDs."""
+    metadata = pd.read_csv(path, dtype=str, keep_default_na=False,
+                           usecols=['rfid', 'library_name', 'barcode'])
+    if metadata[['rfid', 'library_name']].eq('').any().any():
+        raise ValueError('Genotype metadata has missing RFID or library_name')
+    plain = metadata.library_name + '_' + metadata.rfid
+    candidates = pd.concat([
+        pd.DataFrame({'IID': plain, 'rfid': metadata.rfid}),
+        pd.DataFrame({'IID': plain + '_' + metadata.barcode, 'rfid': metadata.rfid})[
+            metadata.barcode.ne('')],
+    ], ignore_index=True).drop_duplicates()
+    if candidates.IID.duplicated().any():
+        conflicts = candidates.loc[candidates.IID.duplicated(False), 'IID'].unique()
+        raise ValueError('Conflicting metadata RFIDs for genotype ID(s): ' + ', '.join(conflicts))
+    return candidates
 
 
-def prepare_samples(sample_files, datasets, psams, keep, rename, coverage, counts):
+def prepare_samples(sample_files, datasets, psams, metadata, keep, rename, coverage, counts):
     frames = [pd.read_csv(path, sep=r'\s+', dtype=str).rename(
         columns={'#IID': 'IID', '#FID': 'FID'}) for path in psams]
     first = frames[0]
@@ -21,13 +32,13 @@ def prepare_samples(sample_files, datasets, psams, keep, rename, coverage, count
     for path, frame in zip(psams[1:], frames[1:]):
         if not first.equals(frame):
             raise ValueError(f'Chromosome PSAM differs from {psams[0]}: {path}')
+    annotated = first.merge(metadata_sample_ids(metadata), on='IID', how='left', validate='one_to_one')
+    if annotated.rfid.isna().any():
+        missing = annotated.loc[annotated.rfid.isna(), 'IID']
+        raise ValueError('PSAM sample(s) absent from genotype metadata: ' + ', '.join(missing))
     mapping = defaultdict(list)
-    for row in first.to_dict('records'):
-        for pattern in PATTERNS:
-            match = re.fullmatch(pattern, row['IID'])
-            if match:
-                mapping[match[1]].append((row.get('FID', '0'), row['IID']))
-                break
+    for row in annotated.to_dict('records'):
+        mapping[row['rfid']].append((row.get('FID', '0'), row['IID']))
     records = []
     for dataset, path in zip(datasets, sample_files):
         rfids = Path(path).read_text().splitlines()
@@ -57,5 +68,5 @@ def prepare_samples(sample_files, datasets, psams, keep, rename, coverage, count
 
 if __name__ == '__main__':
     prepare_samples(snakemake.input.samples, snakemake.params.datasets,
-                    snakemake.input.psams, snakemake.output.keep, snakemake.output.rename,
+                    snakemake.input.psams, snakemake.input.metadata, snakemake.output.keep, snakemake.output.rename,
                     snakemake.log.coverage, snakemake.log.counts)

@@ -143,7 +143,7 @@ python scripts/run_stage.py genotypes -n
 # Remove -n to prepare the shared panel, consumer VCF, and tissue BED files.
 ```
 
-The workflow maps RFIDs to round 11.3 sample IDs, subsets each chromosome to the union of requested rats, corrects REF/ALT orientation against the configured FASTA, and merges the chromosomes. Mapping recognizes ddGBS, ddGBSR, Riptide, Rattaca, and LSWrnaseq names. Missing or ambiguous requested rats cause failure; no replicate is selected implicitly. Every chromosome's PSAM must match, including sample order and sex.
+The workflow maps RFIDs to round 11.3 sample IDs, subsets each chromosome to the union of requested rats, corrects REF/ALT orientation against the configured FASTA, and merges the chromosomes. RFIDs come from the CSV configured by `genotypes.metadata`. Metadata `library_name`, `rfid`, and `barcode` fields construct the two PSAM join-key forms (`library_name_rfid` and `library_name_rfid_barcode`); genotype IDs are not parsed. Every PSAM sample must map to one metadata RFID, and conflicting assignments cause failure. Metadata-only rats absent from the filtered PSAM are not treated as available genotypes. Missing or ambiguous requested rats cause failure; no replicate is selected implicitly. Every chromosome's PSAM must match, including sample order and sex.
 
 The shared outputs are `geno/ratgtex_v5_round11_3.{pgen,pvar,psam}`, an indexed `.vcf.gz` for STAR alignment, identity QC, and aFC, and `.alleles.tsv.gz` with variant ID, REF, and ALT (no header). PGEN retains available dosage and phase; consumer VCFs export hardcalls. The `.work/` directory holds the original-ID/RFID keep and rename tables, per-dataset sample coverage/counts, intermediate chromosome panels, and per-chromosome variant audit/summary files. Coverage reports are Snakemake logs so they remain available when identity validation fails.
 
@@ -166,7 +166,7 @@ This optional target extracts exons before exporting each chromosome, then conca
 
 ## Running
 
-Start by supplying `{version}/{dataset}/rat_ids.txt` and `fastq_map.txt` for every selected **source dataset**. These are the authoritative input files and are prepared manually; automatic generation from tracking information remains a separate Todo. For a tissue containing a single source dataset, those files also serve as the tissue's files.
+Start by supplying `{version}/{dataset}/rat_ids.txt` and `fastq_map.txt` for every selected **source dataset**. For existing datasets, copy these from `samples/rat_ids_current/rat_ids-{dataset}.txt` and `samples/fastq_map_current/fastq_map-{dataset}.txt`. The current list/map files are the source of the derived sample tracking tables, not outputs generated from those tables. New datasets require list/map inputs derived from their sequencing metadata; the v5 VMH inputs are documented in [v5/VMH/README.md](v5/VMH/README.md). For a tissue containing a single source dataset, those files also serve as the tissue's files.
 
 Then proceed in the order below. General setup assembles **combined-tissue** lists/maps (e.g. NAcc from NAcc1–4); alignment uses the source-dataset inputs. Pantry projects are created after identity review.
 
@@ -218,7 +218,7 @@ Without a target, Snakemake uses `default_stage` (initially `align`). Its suppor
 
 Review identity matches manually. For unresolved samples, list their IDs plus a positive control in `{version}/{dataset}/qc/samples_without_matches.txt` and request `{version}/{dataset}/qc/all_rats_summary.tsv` with Snakemake. This builds the optional all-rats exon VCF as needed.
 
-Record relabeling/removal decisions in the sample tracking information and update the source-dataset maps/lists accordingly. Run `setup` to refresh combined-tissue files, then `genotypes` to refresh genotype inputs. Delete BAMs for changed identities and regenerate alignments and dependent outputs. Genotype-aware alignment makes rebuilding these BAMs necessary. Repeat identity QC before `pantry_setup`.
+Record relabeling/removal decisions, update the current rat-ID lists and FASTQ maps and their release-local copies, then regenerate the derived sample tracking tables. Run `setup` to refresh combined-tissue files, then `genotypes` to refresh genotype inputs. Delete BAMs for changed identities and regenerate alignments and dependent outputs. Genotype-aware alignment makes rebuilding these BAMs necessary. Repeat identity QC before `pantry_setup`.
 
 After Pantry setup, source-dataset phenotyping projects can run concurrently. A combined tissue must wait for its constituent source datasets' sample products; unrelated tissues can proceed independently. Run RatGTEx `cross_modality` after tissue phenotyping, Pheast QTL/TWAS manually, then RatGTEx `qtl_extra` after the relevant Pheast QTL results and covariates are ready.
 

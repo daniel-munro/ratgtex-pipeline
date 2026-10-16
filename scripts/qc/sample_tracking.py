@@ -212,10 +212,10 @@ def main():
             fastq_counts[raw_rfid] = fastq_counts.get(raw_rfid, 0) + 1
             fastq_rows.append({"tissue": tissue, "rfid": raw_rfid, "fastq": fastq_file})
         fastq_rfids = set(fastq_counts)
-        v4_rfids = load_rat_ids(rat_ids_file)
-        missing_fastq_for_v4 = sorted(v4_rfids - fastq_rfids)
-        if missing_fastq_for_v4:
-            joined = ", ".join(missing_fastq_for_v4)
+        v5_rfids = load_rat_ids(rat_ids_file)
+        missing_fastq_for_v5 = sorted(v5_rfids - fastq_rfids)
+        if missing_fastq_for_v5:
+            joined = ", ".join(missing_fastq_for_v5)
             raise ValueError(
                 f"Samples in rat_ids-{tissue}.txt are missing from fastq_map-{tissue}.txt: {joined}"
             )
@@ -231,18 +231,23 @@ def main():
         all_rfids = sorted(fastq_rfids)
         for rfid in all_rfids:
             original_rfid = updated_to_original.get((tissue, rfid), rfid)
-            in_v4_release = rfid in v4_rfids
+            in_v5_release = rfid in v5_rfids
             is_genotyped = rfid in genotyped_rfids
             reason = removed_reasons.get((tissue, rfid), "")
-            if in_v4_release:
+            if reason == "not_genotyped" and is_genotyped:
+                raise ValueError(
+                    "Sample listed as not_genotyped is present in genotype metadata: "
+                    f"tissue={tissue} rfid={rfid}"
+                )
+            if in_v5_release:
                 if reason:
                     raise ValueError(
-                        "Sample is in v4 but also listed in removed.tsv: "
+                        "Sample is in v5 but also listed in removed.tsv: "
                         f"tissue={tissue} rfid={rfid} reason={reason}"
                     )
                 if not is_genotyped:
                     raise ValueError(
-                        "Sample is in v4 but is not genotyped: "
+                        "Sample is in v5 but is not genotyped: "
                         f"tissue={tissue} rfid={rfid}"
                     )
                 status = "included"
@@ -253,10 +258,13 @@ def main():
             elif rfid.startswith("dup-"):
                 status = "removed_duplicate"
             elif not is_genotyped:
-                status = "removed_not_genotyped"
+                raise ValueError(
+                    "Sample absent from genotype metadata has no explicit removal reason: "
+                    f"tissue={tissue} rfid={rfid}; add reason=not_genotyped to removed.tsv"
+                )
             else:
                 raise ValueError(
-                    "Sample absent from v4 is genotyped but has no explicit removal reason: "
+                    "Sample absent from v5 is genotyped but has no explicit removal reason: "
                     f"tissue={tissue} original_rfid={original_rfid} rfid={rfid}"
                 )
             rows.append(
@@ -266,7 +274,7 @@ def main():
                     "rfid": rfid,
                     "n_fastq_rows": fastq_counts.get(rfid, 0),
                     "is_genotyped": is_genotyped,
-                    "in_v4_release": in_v4_release,
+                    "in_v5_release": in_v5_release,
                     "status": status,
                 }
             )

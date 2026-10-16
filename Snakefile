@@ -15,18 +15,19 @@ localrules:
 
 # Alignment, quality control, and expression steps can be found in these files:
 include: "steps/setup.smk"
+include: "steps/genotypes.smk"
 include: "steps/align.smk"
 include: "steps/qc.smk"
 include: "steps/qtl.smk"
 include: "steps/phenotypes.smk"
 
 def stage_inputs(stage):
+    if stage == 'genotypes':
+        return list(rules.genotypes.input)
     if stage == 'align':
         return expand('{v}/{tissue}/qc/{tissue}.star_stats.tsv', v=VERSION, tissue=DATASETS)
     if stage == 'identity_qc':
         return expand('{v}/{tissue}/qc/rna_to_geno_summary.tsv', v=VERSION, tissue=DATASETS)
-    if stage == 'genotypes':
-        return expand('{v}/{tissue}/geno.{ext}', v=VERSION, tissue=TISSUES, ext=['bed', 'bim', 'fam'])
     if stage == 'qtl_extra':
         return (
             expand('{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz', v=VERSION, tissue=TISSUES, modality=MODALITIES)
@@ -45,9 +46,6 @@ rule align:
 
 rule identity_qc:
     input: stage_inputs('identity_qc')
-
-rule genotypes:
-    input: stage_inputs('genotypes')
 
 rule qtl_extra:
     input: stage_inputs('qtl_extra')

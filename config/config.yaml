@@ -1,24 +1,28 @@
-## RatGTEx version, e.g. "v4"
-version: "v4"
+version: "v5"
 
 ## Path to reference genome fasta file ending in .fa
 ## I downloaded the FASTA and GTF from RefSeq and converted chromosome names:
 ## python3 ../scripts/setup/prepare_refseq.py \
 ##     --map sequence_report.tsv \
-##     --gtf-in GCF_036323735.1_GRCr8_genomic.gtf \
-##     --gtf-out GCF_036323735.1_GRCr8_genomic.chr.gtf \
+##     --gtf-in GCF_036323735.1-RS_2026_08_genomic.gtf \
+##     --gtf-out GCF_036323735.1-RS_2026_08_genomic.chr.gtf \
 ##     --fasta-in GCF_036323735.1_GRCr8_genomic.fna \
 ##     --fasta-out GCF_036323735.1_GRCr8_genomic.chr.fa
 ref_genome: "ref/GCF_036323735.1_GRCr8_genomic.chr.fa"
 
 ## Path to reference genome annotation file ending in .gtf
-ref_anno: "ref/GCF_036323735.1_GRCr8_genomic.chr.gtf"
+ref_anno: "ref/GCF_036323735.1-RS_2026_08_genomic.chr.gtf"
 
 # Default target is deliberately limited to alignment, before identity review.
 default_stage: align
 
 # Tissue-level analyses explicitly list their source sequencing datasets.
-# Genotype panel names below identify geno/<genotype_panel>.vcf.gz.
+# All selected datasets use the same round 11.3 panel.
+genotypes:
+  panel: ratgtex_v5_round11_3
+  source_prefix: geno/round11_3/round11_3_HD_chr{chrom}_filtered
+  chromosomes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+
 tissues:
   Adipose: [Adipose]
   BLA: [BLA]
@@ -33,14 +37,16 @@ tissues:
   NAcc: [NAcc1, NAcc2, NAcc3, NAcc4]
   PL: [PL1, PL2, PL3]
   pVTA: [pVTA1, pVTA2]
+  VMH: [VMH]
 
 modalities:
-  alt_polyA: {grouped: true, producer: alt_TSS_polyA}
-  alt_TSS: {grouped: true, producer: alt_TSS_polyA}
-  expression: {grouped: false, producer: expression}
-  isoforms: {grouped: true, producer: expression}
-  splicing: {grouped: true, producer: splicing}
-  stability: {grouped: false, producer: stability}
+  alt_polyA: { grouped: true, producer: alt_TSS_polyA }
+  alt_TSS: { grouped: true, producer: alt_TSS_polyA }
+  expression: { grouped: false, producer: expression }
+  intron_retention: { grouped: true, producer: intron_retention }
+  isoforms: { grouped: true, producer: expression }
+  splicing: { grouped: true, producer: splicing }
+  stability: { grouped: false, producer: stability }
 cross_modality: true
 
 pantry:
@@ -51,14 +57,20 @@ pantry:
   # Sample-level products reused when assembling combined tissues.
   # Add an interface here when enabling another Pantry producer.
   merge_products:
-    expression: ['expression/{sample}']
-    splicing: ['splicing/{sample}.junc']
-    stability: ['stability/{sample}.exonic.counts.txt', 'stability/{sample}.intronic.counts.txt']
+    expression: ["expression/{sample}"]
+    splicing: ["splicing/{sample}.junc"]
+    # MAJIQ builds a joint splice graph per tissue, so reuse BAMs and indexes.
+    intron_retention: ["bam/{sample}.bam", "bam/{sample}.bam.bai"]
+    stability:
+      [
+        "stability/{sample}.exonic.counts.txt",
+        "stability/{sample}.intronic.counts.txt",
+      ]
     alt_TSS_polyA:
-      - 'alt_TSS_polyA/grp_1.downstream/{sample}'
-      - 'alt_TSS_polyA/grp_1.upstream/{sample}'
-      - 'alt_TSS_polyA/grp_2.downstream/{sample}'
-      - 'alt_TSS_polyA/grp_2.upstream/{sample}'
+      - "alt_TSS_polyA/grp_1.downstream/{sample}"
+      - "alt_TSS_polyA/grp_1.upstream/{sample}"
+      - "alt_TSS_polyA/grp_2.downstream/{sample}"
+      - "alt_TSS_polyA/grp_2.upstream/{sample}"
   pheast:
     twas_snps: ref/LD_SNPs.txt
 
@@ -69,34 +81,28 @@ datasets:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
   LHb:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
   NAcc1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
   OFC:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
   PL1:
     read_length: 100
     fastq_path: "fastq/IL_LHb_NAcc_OFC_PL"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## Eye dataset
   Eye:
     read_length: 150
     fastq_path: "fastq/Eye"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## BLA, NAcc2, and PL2 samples from u01_suzanne_mitchell
   ## Note: half of NAcc2 samples are single-end. The FASTQ map file will contain
@@ -106,73 +112,66 @@ datasets:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
   NAcc2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
-    genotype_panel: "ratgtex_v4_round11_2"
   PL2:
     read_length: 100
     fastq_path: "fastq/BLA_NAcc2_PL2"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## Adipose and Liver dataset
   Adipose:
     read_length: 76
     fastq_path: "fastq/Adipose_Liver/Fat"
     paired_end: false
-    genotype_panel: "ratgtex_v4_round11_2"
   Liver:
     read_length: 126
     fastq_path: "fastq/Adipose_Liver/Liver"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## Whole brain hemisphere dataset
   Brain:
     read_length: 101
     fastq_path: "fastq/Brain"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## RMTg dataset
   RMTg:
     read_length: 151
     fastq_path: "fastq/RMTg"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## NAcc3, PL3, and pVTA1 samples from p50_hao_chen_2020_rnaseq
   NAcc3:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
   PL3:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
   pVTA1:
     read_length: 151
     fastq_path: "fastq/NAcc3_PL3_pVTA"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
 
   ## IC, NAcc4, and pVTA2 samples from p50_paul_meyer_2020_rnaseq
   IC:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
   NAcc4:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
   pVTA2:
     read_length: 151
     fastq_path: "fastq/IC_NAcc4_pVTA2"
     paired_end: true
-    genotype_panel: "ratgtex_v4_round11_2"
+
+  ## VMH from r01_leah_solberg_woods_neurogenes
+  VMH:
+    read_length: 150
+    fastq_path: "fastq/VMH"
+    paired_end: true

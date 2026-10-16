@@ -56,7 +56,7 @@ def fastq_input(wildcards) -> list:
     in the list, e.g. [runA_1.fq.gz runA_2.fq.gz runB_1.fq.gz runB_2.fq.gz].
     For single-end samples, returns just the list of files.
     """
-    paths, is_paired = FASTQ_MAPS[wildcards.tissue][wildcards.rat_id]
+    paths, is_paired = dataset_fastqs(wildcards.tissue)[wildcards.rat_id]
     if is_paired:
         result = []
         for i in range(len(paths[0])):
@@ -72,7 +72,7 @@ def fastq_star_param(wildcards):
     
     This is the string supplied directly to the STAR command.
     """
-    paths, is_paired = FASTQ_MAPS[wildcards.tissue][wildcards.rat_id]
+    paths, is_paired = dataset_fastqs(wildcards.tissue)[wildcards.rat_id]
     if is_paired:
         return ' '.join([','.join(paths[0]), ','.join(paths[1])])
     else:
@@ -81,7 +81,7 @@ def fastq_star_param(wildcards):
 
 def read_groups(wildcards, input):
     """Include read group in BAM for MarkDuplicates (though we currently aren't using that)."""
-    _, is_paired = FASTQ_MAPS[wildcards.tissue][wildcards.rat_id]
+    _, is_paired = dataset_fastqs(wildcards.tissue)[wildcards.rat_id]
     n_fastqs = len(input.fastq) // 2 if is_paired else len(input.fastq)
     rgs = expand("ID:{fq} SM:{sam}", fq=range(n_fastqs), sam=wildcards.rat_id)
     return " , ".join(rgs)
@@ -90,6 +90,7 @@ def read_groups(wildcards, input):
 rule star_align:
     """Align RNA-Seq reads for a sample using STAR."""
     input:
+        fastq_map = "{version}/{tissue}/fastq_map.txt",
         fastq = fastq_input,
         vcf = lambda w: f"geno/individual/{GENOTYPE_PANELS[w.tissue]}/{w.rat_id}.vcf.gz",
         index = lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}/SAindex"

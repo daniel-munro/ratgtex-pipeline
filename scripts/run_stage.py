@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Set up Pantry projects and run RatGTEx steps before and after manual Pantry runs."""
+"""Prepare release inputs, run RatGTEx stages, and set up manual Pantry projects."""
 import argparse
 import json
 import shlex
@@ -12,7 +12,7 @@ import yaml
 from workflow_config import datasets, phenotype_config, pheast_config, write_config_lists
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGES = ['setup', 'align', 'identity_qc', 'genotypes', 'cross_modality', 'qtl_extra']
+STAGES = ['setup', 'genotypes', 'align', 'identity_qc', 'pantry_setup', 'cross_modality', 'qtl_extra']
 
 
 def read_ids(path):
@@ -28,17 +28,8 @@ def link(source, destination):
 
 
 def setup(config, root):
-    """Create new project copies only; never replace an existing Pantry project."""
+    """Assemble analysis-tissue lists/maps from manually supplied dataset inputs."""
     version = root / config['version']
-    source = Path(config['pantry']['source']).expanduser().resolve()
-    source_revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
-    source_status = subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True)
-    # Preflight destination collisions before making changes. Inputs are loaded normally.
-    names = list(dict.fromkeys(datasets(config) + list(config['tissues'])))
-    for name in names:
-        for module in ['phenos', 'pheast']:
-            if (version / name / module).exists():
-                raise FileExistsError(f'{version / name / module}: setup creates new projects only')
     sample_ids = {d: read_ids(version / d / 'rat_ids.txt') for d in datasets(config)}
     maps = {}
     for d in datasets(config):
@@ -52,13 +43,34 @@ def setup(config, root):
         combined = [animal for d in members for animal in sample_ids[d]]
         if len(combined) != len(set(combined)):
             raise ValueError(f'{tissue}: overlapping animals across datasets require an explicit library-merging decision')
+        if members != [tissue] and tissue in config['datasets']:
+            raise ValueError(f'{tissue} is both a source dataset and a distinct merged tissue')
+    for tissue, members in config['tissues'].items():
+        combined = [animal for d in members for animal in sample_ids[d]]
         if members != [tissue]:
-            if tissue in config['datasets']:
-                raise ValueError(f'{tissue} is both a source dataset and a distinct merged tissue')
             (version / tissue).mkdir(parents=True, exist_ok=True)
             (version / tissue / 'rat_ids.txt').write_text(''.join(f'{s}\n' for s in sorted(combined)))
             (version / tissue / 'fastq_map.txt').write_text(''.join(
                 '\t'.join(row) + '\n' for d in members for row in maps[d]))
+
+
+def pantry_setup(config, root):
+    """Copy Pantry projects after identity review; leave prepared lists/maps alone."""
+    version = root / config['version']
+    source = Path(config['pantry']['source']).expanduser().resolve()
+    source_revision = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
+    source_status = subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True)
+    names = list(dict.fromkeys(datasets(config) + list(config['tissues'])))
+    for name in names:
+        for module in ['phenos', 'pheast']:
+            if (version / name / module).exists():
+                raise FileExistsError(f'{version / name / module}: pantry_setup creates new projects only')
+    prepared_ids = {name: read_ids(version / name / 'rat_ids.txt') for name in names}
+    sample_ids = {name: prepared_ids[name] for name in datasets(config)}
+    for tissue, members in config['tissues'].items():
+        combined = [animal for d in members for animal in sample_ids[d]]
+        if len(combined) != len(set(combined)) or set(prepared_ids[tissue]) != set(combined):
+            raise ValueError(f'{tissue}: sample membership differs from source datasets; rerun setup after resolving identities')
     for name in names:
         project = version / name
         for module, source_module in [('phenos', 'phenotyping'), ('pheast', 'pheast')]:
@@ -106,24 +118,32 @@ def write_project_configs(config, name, root):
             original.replace("configfile: 'config.yml'", f"configfile: 'config.{analysis}.yml'"))
 
 
+def run_snakemake(targets, config_path, args):
+    command = ['snakemake', *targets, '--snakefile', 'Snakefile', '--profile', args.profile,
+               '--jobs', str(args.jobs), '--configfile', str(config_path)]
+    if args.dry_run:
+        command.append('--dry-run')
+    print(f'[{ROOT}] {shlex.join(command)}', flush=True)
+    if not args.plan:
+        subprocess.run(command, cwd=ROOT, check=True)
+
+
 def run(config, stage, config_path, args):
     if stage not in STAGES:
         raise ValueError(f'Unknown RatGTEx stage: {stage}. Run Pantry phenotyping and Pheast directly in their project directories.')
-    if stage == 'setup':
+    if stage in ['setup', 'pantry_setup']:
         if args.dry_run or args.plan:
-            print('Setup preview: export dataset/tissue lists and create new Pantry projects for ' + ', '.join(
+            action = ('assemble tissue sample lists/maps and export dataset/tissue IDs'
+                      if stage == 'setup' else 'copy Pantry projects, write configs, and link prepared inputs')
+            print(f'{stage} preview: {action} for ' + ', '.join(
                 dict.fromkeys(datasets(config) + list(config['tissues']))))
-        else:
+        elif stage == 'setup':
             setup(config, ROOT)
             write_config_lists(config, config_path.parent)
+        else:
+            pantry_setup(config, ROOT)
     else:
-        command = ['snakemake', stage, '--snakefile', 'Snakefile', '--profile', args.profile,
-                   '--jobs', str(args.jobs), '--configfile', str(config_path)]
-        if args.dry_run:
-            command.append('--dry-run')
-        print(f'[{ROOT}] {shlex.join(command)}', flush=True)
-        if not args.plan:
-            subprocess.run(command, cwd=ROOT, check=True)
+        run_snakemake([stage], config_path, args)
 
 
 def main():
@@ -133,7 +153,7 @@ def main():
     parser.add_argument('--profile', default='slurm')
     parser.add_argument('--jobs', type=int, default=10)
     parser.add_argument('-n', '--dry-run', action='store_true')
-    parser.add_argument('--plan', action='store_true', help='Print commands without invoking Snakemake or writing files')
+    parser.add_argument('--plan', action='store_true', help='Preview actions without invoking Snakemake or writing files')
     args = parser.parse_args()
     path = args.config.resolve()
     config = yaml.safe_load(path.read_text())

@@ -45,14 +45,13 @@ MODALITIES = list(config['modalities'])
 grouped_modality = {m: s['grouped'] for m, s in config['modalities'].items()}
 if config['cross_modality']:
     grouped_modality['cross_modality'] = True
-FASTQ_MAPS = {}
-for dataset in DATASETS:
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def dataset_fastqs(dataset):
+    """Load a dataset's map only when alignment requests it."""
     settings = config['datasets'][dataset]
-    FASTQ_MAPS[dataset] = load_fastq_map(
+    return load_fastq_map(
         f"{VERSION}/{dataset}/fastq_map.txt", Path(settings['fastq_path']), settings.get('paired_end'))
-GENOTYPE_PANELS = {d: settings['genotype_panel'] for d, settings in config['datasets'].items()}
-for tissue, members in config['tissues'].items():
-    genotype_panels = {config['datasets'][d]['genotype_panel'] for d in members}
-    if len(genotype_panels) != 1:
-        raise ValueError(f'All datasets in tissue {tissue} must share a genotype panel')
-    GENOTYPE_PANELS[tissue] = genotype_panels.pop()
+
+GENOTYPE_PANELS = {name: config['genotypes']['panel'] for name in DATASETS + TISSUES}

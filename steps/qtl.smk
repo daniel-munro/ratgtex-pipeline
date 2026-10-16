@@ -1,25 +1,3 @@
-rule vcf_to_plink:
-    """Get SNPs that are not monomorphic in a given set of samples."""
-    input:
-        vcf = lambda w: f"geno/{GENOTYPE_PANELS[w.tissue]}.vcf.gz",
-        samples = "{version}/{tissue}/rat_ids.txt"
-    output:
-        multiext("{version}/{tissue}/geno", ".bed", ".bim", ".fam")
-    params:
-        prefix = "{version}/{tissue}/geno"
-    shell:
-        """
-        plink2 --make-bed \
-            --vcf {input.vcf} \
-            --keep {input.samples} \
-            --maf 0.01 \
-            --mac 2 \
-            --max-alleles 2 \
-            --output-chr chrM \
-            --out {params.prefix}
-        """
-
-
 rule tensorqtl_cis_nominal:
     """Get summary statistics for all tested cis-window SNPs per gene."""
     input:

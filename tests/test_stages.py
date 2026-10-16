@@ -25,8 +25,8 @@ class StageTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.config = yaml.safe_load((ROOT / 'config/config.yaml').read_text())
         self.config.update(version='v5', tissues={'Combined': ['First', 'Second']},
-                           datasets={'First': {'read_length': 100, 'fastq_path': 'reads/one', 'genotype_panel': 'geno'},
-                                    'Second': {'read_length': 150, 'fastq_path': 'reads/two', 'genotype_panel': 'geno'}})
+                           datasets={'First': {'read_length': 100, 'fastq_path': 'reads/one'},
+                                    'Second': {'read_length': 150, 'fastq_path': 'reads/two'}})
         source = self.root / 'Pantry'
         self.config['pantry']['source'] = str(source)
         for module in ['phenotyping', 'pheast']:
@@ -41,6 +41,7 @@ class StageTests(unittest.TestCase):
     def setup_projects(self):
         with patch.object(run_stage.subprocess, 'check_output', return_value='revision\n'):
             run_stage.setup(self.config, self.root)
+            run_stage.pantry_setup(self.config, self.root)
 
     def test_setup_merges_maps_and_reuses_sample_products(self):
         self.setup_projects()
@@ -49,6 +50,9 @@ class StageTests(unittest.TestCase):
         self.assertIn(str(self.root / 'reads/two/rat2.fq.gz'), (project / 'fastq_map.txt').read_text())
         link = project / 'phenos/intermediate/expression/rat2'
         self.assertEqual(link.readlink(), self.root / 'v5/Second/phenos/intermediate/expression/rat2')
+        for suffix in ['', '.bai']:
+            bam = project / f'phenos/intermediate/bam/rat2.bam{suffix}'
+            self.assertEqual(bam.readlink(), self.root / f'v5/Second/phenos/intermediate/bam/rat2.bam{suffix}')
         config = yaml.safe_load((project / 'phenos/config.yml').read_text())
         self.assertNotIn('paired_end', config)
         self.assertEqual(config['fastq_dir'], '/')
@@ -89,7 +93,7 @@ class StageTests(unittest.TestCase):
 
     def test_processing_stages_only_dispatch_to_ratgtex(self):
         args = SimpleNamespace(profile='slurm', jobs=10, dry_run=True, plan=False)
-        for stage in ['align', 'identity_qc', 'genotypes', 'cross_modality', 'qtl_extra']:
+        for stage in ['genotypes', 'align', 'identity_qc', 'cross_modality', 'qtl_extra']:
             with self.subTest(stage=stage), patch.object(run_stage, 'ROOT', self.root), patch.object(run_stage.subprocess, 'run') as mock:
                 run_stage.run(self.config, stage, self.root / 'config/config.yaml', args)
                 mock.assert_called_once()
@@ -100,7 +104,7 @@ class StageTests(unittest.TestCase):
                 self.assertIn('slurm', command)
                 self.assertEqual(command[command.index('--configfile') + 1], str(self.root / 'config/config.yaml'))
 
-    def test_setup_exports_selected_lists_without_launching_processing(self):
+    def test_general_setup_exports_lists_without_pantry_or_processing(self):
         directory = self.root / 'config'
         directory.mkdir()
         self.config['tissues'] = {'Combined': ['First', 'Second'], 'First': ['First']}
@@ -109,15 +113,48 @@ class StageTests(unittest.TestCase):
         with patch.object(run_stage, 'ROOT', self.root), patch.object(run_stage.subprocess, 'run') as mock:
             run_stage.run(self.config, 'setup', directory / 'config.yaml', args)
             self.assertFalse((directory / 'datasets.txt').exists())
-            self.assertFalse((self.root / 'v5/First/phenos').exists())
+            self.assertFalse((self.root / 'v5/Combined').exists())
             args.dry_run = False
-            with patch.object(run_stage.subprocess, 'check_output', return_value='revision\n'):
+            # General setup does not need a Pantry checkout or git metadata.
+            with patch.object(run_stage.subprocess, 'check_output', side_effect=AssertionError('Pantry read')):
                 run_stage.run(self.config, 'setup', directory / 'config.yaml', args)
             mock.assert_not_called()
         self.assertEqual((directory / 'datasets.txt').read_text(), 'First\nSecond\n')
         self.assertEqual((directory / 'tissues.txt').read_text(), 'Combined\nFirst\n')
+        self.assertEqual((self.root / 'v5/Combined/rat_ids.txt').read_text(), 'rat1\nrat2\n')
+        self.assertFalse((self.root / 'v5/First/phenos').exists())
+        # A later identity correction refreshes combined inputs without touching Pantry.
+        (self.root / 'v5/First/rat_ids.txt').write_text('corrected\n')
+        (self.root / 'v5/First/fastq_map.txt').write_text('rat1.fq.gz\tcorrected\n')
+        (self.root / 'v5/First/phenos').mkdir()
+        sentinel = self.root / 'v5/First/phenos/config.yml'
+        sentinel.write_text('keep this config\n')
+        run_stage.setup(self.config, self.root)
+        self.assertEqual((self.root / 'v5/Combined/rat_ids.txt').read_text(), 'corrected\nrat2\n')
+        self.assertIn('corrected', (self.root / 'v5/Combined/fastq_map.txt').read_text())
+        self.assertEqual(sentinel.read_text(), 'keep this config\n')
+
+    def test_pantry_setup_is_separate_and_does_not_launch_processing(self):
+        run_stage.setup(self.config, self.root)
+        args = SimpleNamespace(profile='slurm', jobs=10, dry_run=True, plan=False)
+        path = self.root / 'config/config.yaml'
+        with patch.object(run_stage, 'ROOT', self.root), patch.object(run_stage.subprocess, 'run') as mock:
+            run_stage.run(self.config, 'pantry_setup', path, args)
+            self.assertFalse((self.root / 'v5/First/phenos').exists())
+            args.dry_run = False
+            with patch.object(run_stage.subprocess, 'check_output', return_value='revision\n'):
+                run_stage.run(self.config, 'pantry_setup', path, args)
+            mock.assert_not_called()
         settings = yaml.safe_load((self.root / 'v5/First/phenos/config.yml').read_text())
         self.assertEqual(settings['ref_genome'], str(self.root / self.config['ref_genome']))
+
+    def test_pantry_setup_rejects_stale_combined_membership(self):
+        run_stage.setup(self.config, self.root)
+        (self.root / 'v5/Second/rat_ids.txt').write_text('corrected\n')
+        with patch.object(run_stage.subprocess, 'check_output', return_value='revision\n'):
+            with self.assertRaisesRegex(ValueError, 'rerun setup'):
+                run_stage.pantry_setup(self.config, self.root)
+        self.assertFalse((self.root / 'v5/First/phenos').exists())
 
     def test_pantry_execution_is_not_a_runner_stage(self):
         args = SimpleNamespace(profile='slurm', jobs=10, dry_run=False, plan=False)

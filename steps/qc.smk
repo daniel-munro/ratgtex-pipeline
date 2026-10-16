@@ -1,30 +1,6 @@
 localrules:
-    collapse_annotation,
-    qc_mixups_exon_regions,
     qc_sex_concordance,
     qc_star_stats,
-
-
-rule collapse_annotation:
-    """Combine all isoforms of a gene into a single transcript.
-    See https://github.com/broadinstitute/gtex-pipeline/tree/master/gene_model
-    """
-    input:
-        f"{ANNO_PREFIX}.gtf"
-    output:
-        f"{ANNO_PREFIX}.genes.gtf"
-    shell:
-        "python3 scripts/setup/collapse_annotation.py {input} {output}"
-
-
-rule qc_mixups_exon_regions:
-    """Get all exon regions from gene annotations"""
-    input:
-        f"{ANNO_PREFIX}.genes.gtf"
-    output:
-        "ref/exon_regions.tsv.gz"
-    shell:
-        """grep -v '^#' {input} | awk '$3=="exon"' | cut -f1,4,5 | gzip -c > {output}"""
 
 
 rule qc_mixups_test_snps_vcf:
@@ -125,10 +101,10 @@ rule qc_mixups_compare_to_all_rats:
     in the all-rat VCF).
     """
     input:
-        vcf = "geno/all_rats_exons.vcf.gz",
-        vcfi = "geno/all_rats_exons.vcf.gz.tbi",
+        vcf = GEXONS + ".vcf.gz",
+        vcfi = GEXONS + ".vcf.gz.tbi",
         samples = "{version}/{tissue}/qc/samples_without_matches.txt",
-        snps = "geno/all_rats_exons.snps.txt",
+        snps = GEXONS + ".snps.txt",
     output:
         "{version}/{tissue}/qc/all_rats_summary.tsv"
     params:

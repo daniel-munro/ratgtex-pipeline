@@ -45,11 +45,13 @@ stats = {}
 with open(f"{args.version}/{args.tissue}/rat_ids.txt", "r") as f:
     ids = f.read().splitlines()
 
-config = yaml.safe_load(open("config/config.yaml"))["datasets"][args.tissue]
+with open("config/config.yaml") as handle:
+    workflow_config = yaml.safe_load(handle)
+config = workflow_config["datasets"][args.tissue]
 read_length = config["read_length"]
 fastq_path = Path(config["fastq_path"])
 paired = config.get("paired_end", None)
-genotype_panel = config["genotype_panel"]
+genotype_panel = workflow_config["genotypes"]["panel"]
 
 print(f"INFO: Paired-end configuration: {paired}")
 print(f"INFO: Read length is set to {read_length} in config/config.yaml. Ensure this is correct.")

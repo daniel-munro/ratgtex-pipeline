@@ -95,9 +95,7 @@ rule star_align:
         vcf = lambda w: f"geno/individual/{GENOTYPE_PANELS[w.tissue]}/{w.rat_id}.vcf.gz",
         index = lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}/SAindex"
     output:
-        # RSEM requires transcriptome-sorted BAM.
         coord = "{version}/{tissue}/star_out/{rat_id}.Aligned.sortedByCoord.out.bam",
-        bam = "{version}/{tissue}/star_out/{rat_id}.Aligned.toTranscriptome.out.bam",
         log = "{version}/{tissue}/star_out/{rat_id}.Log.final.out",
     params:
         fastq_list = fastq_star_param,
@@ -120,7 +118,6 @@ rule star_align:
             --twopassMode Basic \
             --varVCFfile <(zcat {input.vcf}) \
             --waspOutputMode SAMtag \
-            --quantMode TranscriptomeSAM \
             --outSAMstrandField intronMotif \
             --outSAMattrRGline {params.read_groups} \
             --outSAMtype BAM SortedByCoordinate \

@@ -22,7 +22,8 @@ genotypes:
   panel: ratgtex_v5_round11_3
   metadata: geno/2026-07-15_round11_3_metadata.csv
   source_prefix: geno/round11_3/round11_3_HD_chr{chrom}_filtered
-  chromosomes: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
+  chromosomes:
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
 
 tissues:
   Adipose: [Adipose]

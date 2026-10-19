@@ -53,12 +53,12 @@ def main() -> None:
     parser.add_argument(
         "--out-dir",
         type=Path,
-        help="Override FASTQ symlink directory (default: samples/geo_fastq-{tissue})",
+        help="Override FASTQ symlink directory (default: samples/geo/geo_fastq-{tissue})",
     )
     parser.add_argument(
         "--out-samples",
         type=Path,
-        help="Override GEO sample TSV path (default: samples/geo_samples-{tissue}.tsv)",
+        help="Override GEO sample TSV path (default: samples/geo/geo_samples-{tissue}.tsv)",
     )
     args = parser.parse_args()
 
@@ -117,7 +117,7 @@ def main() -> None:
             f"across subdirectories: {dup_str}"
         )
 
-    out_dir = args.out_dir or Path(f"samples/geo_fastq-{tissue}")
+    out_dir = args.out_dir or Path(f"samples/geo/geo_fastq-{tissue}")
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for rel_path in fastq_rel_paths:
@@ -169,7 +169,7 @@ def main() -> None:
         out_records.append(record)
 
     out_table = pd.DataFrame(out_records, columns=["rfid", "description", *file_cols])
-    out_samples = args.out_samples or Path(f"samples/geo_samples-{tissue}.tsv")
+    out_samples = args.out_samples or Path(f"samples/geo/geo_samples-{tissue}.tsv")
     out_samples.parent.mkdir(parents=True, exist_ok=True)
     out_table.to_csv(out_samples, sep="\t", index=False)
 

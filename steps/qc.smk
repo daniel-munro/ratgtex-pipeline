@@ -53,6 +53,7 @@ rule qc_mixups_ASEReadCounter:
             -R {input.ref} \
             -I {input.bam} \
             -V {input.vcf} \
+            -L {input.vcf} \
             -O {output} \
             --min-depth-of-non-filtered-base 10 \
             --min-mapping-quality 250 \
@@ -84,11 +85,11 @@ rule qc_mixups_compare_rna_to_vcf:
     shell:
         """
         python3 scripts/qc/rna_to_geno_similarity.py \
-            {input.vcf} \
-            {params.count_dir} \
-            {input.samples} \
-            {output.matrix} \
-            {output.summary}
+            --vcf {input.vcf} \
+            --count-dir {params.count_dir} \
+            --samples {input.samples} \
+            --out-matrix {output.matrix} \
+            --out-summary {output.summary}
         """
 
 
@@ -115,7 +116,7 @@ rule qc_mixups_compare_to_all_rats:
         mem_mb = 64000
     shell:
         """
-        python3 scripts/qc/rna_to_geno_all_rats.py \
+        python3 scripts/qc/rna_to_geno_similarity.py \
             --vcf {input.vcf} \
             --count-dir {params.count_dir} \
             --samples {input.samples} \
@@ -152,5 +153,3 @@ rule qc_star_stats:
         star_dir = "{version}/{tissue}/star_out",
     shell:
         "python3 scripts/qc/stats_from_star_logs.py {params.star_dir} {input.samples} {output}"
-
-    

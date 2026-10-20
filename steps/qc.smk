@@ -1,6 +1,33 @@
 localrules:
     qc_sex_concordance,
     qc_star_stats,
+    qc_sample_quality_report,
+    qc_identity_report,
+
+
+rule qc_sample_quality_report:
+    input:
+        stats=expand('{v}/{dataset}/qc/{dataset}.star_stats.tsv', v=VERSION, dataset=DATASETS),
+        samples=expand('{v}/{dataset}/rat_ids.txt', v=VERSION, dataset=DATASETS),
+    output:
+        metrics='reports/sample_quality/sample_metrics.tsv',
+        cutoffs='reports/sample_quality/candidate_cutoff_counts.tsv',
+        candidates='reports/sample_quality/samples_below_2million.tsv',
+        depth_png='reports/sample_quality/uniquely_mapped_depth.png',
+        depth_pdf='reports/sample_quality/uniquely_mapped_depth.pdf',
+        percent_png='reports/sample_quality/unique_mapping_percent.png',
+        percent_pdf='reports/sample_quality/unique_mapping_percent.pdf',
+    script:
+        '../reports/sample_quality/review_sample_quality.py'
+
+
+rule qc_identity_report:
+    input:
+        expand('{v}/{dataset}/qc/rna_to_geno_summary.tsv', v=VERSION, dataset=DATASETS),
+    output:
+        'reports/identity_qc/issues.tsv',
+    script:
+        '../reports/identity_qc/summarize.py'
 
 
 rule qc_mixups_test_snps_vcf:
@@ -90,39 +117,6 @@ rule qc_mixups_compare_rna_to_vcf:
             --samples {input.samples} \
             --out-matrix {output.matrix} \
             --out-summary {output.summary}
-        """
-
-
-rule qc_mixups_compare_to_all_rats:
-    """For samples without a genotype match, check for matches in all rats.
-    After running qc_mixups_compare_rna_to_vcf, some mismatched RNA samples might still
-    not have a genotype match. This rule will compare their test SNPs to those of all
-    of the thousands of rats we have genotypes for to see if any match. It's good to also include at
-    least one RNA sample ID that did match as a positive control (as long as it's included
-    in the all-rat VCF).
-    """
-    input:
-        vcf = GEXONS + ".vcf.gz",
-        vcfi = GEXONS + ".vcf.gz.tbi",
-        samples = "{version}/{tissue}/qc/samples_without_matches.txt",
-        snps = GEXONS + ".snps.txt",
-    output:
-        "{version}/{tissue}/qc/all_rats_summary.tsv"
-    params:
-        count_dir = "{version}/{tissue}/qc/test_snps",
-        n_snps = 10000
-    resources:
-        runtime = '4h',
-        mem_mb = 64000
-    shell:
-        """
-        python3 scripts/qc/rna_to_geno_similarity.py \
-            --vcf {input.vcf} \
-            --count-dir {params.count_dir} \
-            --samples {input.samples} \
-            --snps {input.snps} \
-            --n-snps {params.n_snps} \
-            --out-summary {output}
         """
 
 

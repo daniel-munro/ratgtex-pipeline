@@ -25,9 +25,9 @@ def stage_inputs(stage):
     if stage == 'genotypes':
         return list(rules.genotypes.input)
     if stage == 'align':
-        return expand('{v}/{tissue}/qc/{tissue}.star_stats.tsv', v=VERSION, tissue=DATASETS)
+        return expand('{v}/{tissue}/qc/{tissue}.star_stats.tsv', v=VERSION, tissue=DATASETS) + list(rules.qc_sample_quality_report.output)
     if stage == 'identity_qc':
-        return expand('{v}/{tissue}/qc/rna_to_geno_summary.tsv', v=VERSION, tissue=DATASETS)
+        return expand('{v}/{tissue}/qc/rna_to_geno_summary.tsv', v=VERSION, tissue=DATASETS) + list(rules.qc_identity_report.output)
     if stage == 'qtl_extra':
         return (
             expand('{v}/{tissue}/{tissue}.{modality}.cis_qtl_signif.txt.gz', v=VERSION, tissue=TISSUES, modality=MODALITIES)

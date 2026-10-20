@@ -1,0 +1,136 @@
+"""Genotype-free alignment and all-rat identity search. Run from the repo root."""
+from pathlib import Path
+import sys
+
+ROOT = Path(workflow.basedir).parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+configfile: 'config/config.yaml'
+include: '../../steps/setup.smk'
+include: '../../steps/genotypes.smk'
+include: '../../steps/align.smk'
+
+import csv
+
+# This manifest is the sole source of search membership, including controls.
+MANIFEST = 'reports/identity_qc/samples_to_check.tsv'
+SEARCH_SAMPLES = {}
+with open(MANIFEST) as handle:
+    for row in csv.DictReader(handle, delimiter='\t'):
+        tissue, sample = row['tissue'], row['sample_id']
+        if not tissue or not sample:
+            raise ValueError('Search manifest requires a tissue and sample_id on every row')
+        config['datasets'][tissue]  # Require a configured source dataset.
+        samples = SEARCH_SAMPLES.setdefault(tissue, [])
+        if sample in samples:
+            raise ValueError(f'Duplicate search sample: {tissue}/{sample}')
+        samples.append(sample)
+SEARCH = f'reports/identity_qc/genotype_free/{VERSION}'
+
+localrules:
+    search_all,
+    search_sample_list,
+
+rule search_all:
+    default_target: True
+    input:
+        expand(SEARCH + '/{tissue}/all_rats_summary.tsv', tissue=list(SEARCH_SAMPLES))
+
+
+rule search_sample_list:
+    input:
+        MANIFEST
+    output:
+        SEARCH + '/{tissue}/samples.txt'
+    run:
+        Path(output[0]).write_text(''.join(
+            sample + '\n' for sample in SEARCH_SAMPLES[wildcards.tissue]))
+
+
+rule search_align:
+    input:
+        fastq_map=VERSION + '/{tissue}/fastq_map.txt',
+        fastq=fastq_input,
+        index=lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}/SAindex"
+    output:
+        bam=SEARCH + '/{tissue}/alignment/{rat_id}.bam',
+        log=SEARCH + '/{tissue}/alignment/{rat_id}.Log.final.out'
+    params:
+        fastqs=fastq_star_param,
+        index=lambda w: f"ref/star_index_{config['datasets'][w.tissue]['read_length']}",
+        prefix=SEARCH + '/{tissue}/alignment/{rat_id}.',
+        read_groups=read_groups
+    threads: 16
+    resources:
+        mem_mb=60000,
+        runtime='8h',
+        tmpdir=lambda w: f'{SEARCH}/{w.tissue}/tmp/{w.rat_id}/star'
+    shell:
+        """
+        STAR --runMode alignReads --runThreadN {threads} \
+            --genomeDir {params.index:q} --readFilesIn {params.fastqs} \
+            --readFilesCommand zcat --twopassMode Basic \
+            --outSAMstrandField intronMotif --outSAMattrRGline {params.read_groups} \
+            --outSAMtype BAM SortedByCoordinate --outSAMunmapped Within \
+            --outTmpDir {resources.tmpdir:q}/STAR \
+            --outFileNamePrefix {params.prefix:q}
+        mv {params.prefix:q}Aligned.sortedByCoord.out.bam {output.bam:q}
+        """
+
+
+rule search_index:
+    input:
+        SEARCH + '/{tissue}/alignment/{rat_id}.bam'
+    output:
+        SEARCH + '/{tissue}/alignment/{rat_id}.bam.bai'
+    threads: 8
+    shell:
+        'samtools index -@ {threads} {input:q} {output:q}'
+
+
+rule search_counts:
+    input:
+        ref=config['ref_genome'],
+        fai=config['ref_genome'] + '.fai',
+        dictionary=config['ref_genome'].removesuffix('.fa') + '.dict',
+        vcf=VERSION + '/{tissue}/qc/test_snps.vcf.gz',
+        tbi=VERSION + '/{tissue}/qc/test_snps.vcf.gz.tbi',
+        bam=SEARCH + '/{tissue}/alignment/{rat_id}.bam',
+        bai=SEARCH + '/{tissue}/alignment/{rat_id}.bam.bai'
+    output:
+        SEARCH + '/{tissue}/counts/{rat_id}.readcounts.txt'
+    resources:
+        mem_mb=16000,
+        runtime='16h',
+        tmpdir=lambda w: f'{SEARCH}/{w.tissue}/tmp/{w.rat_id}/gatk'
+    shell:
+        """
+        gatk --java-options '-Djava.io.tmpdir={resources.tmpdir}' ASEReadCounter \
+            -R {input.ref:q} -I {input.bam:q} -V {input.vcf:q} -L {input.vcf:q} \
+            -O {output:q} --tmp-dir {resources.tmpdir:q} \
+            --min-depth-of-non-filtered-base 10 --min-mapping-quality 250 --min-base-quality 15
+        """
+
+
+rule search_compare:
+    input:
+        samples=SEARCH + '/{tissue}/samples.txt',
+        counts=lambda w: expand(SEARCH + '/{tissue}/counts/{rat_id}.readcounts.txt',
+                                tissue=w.tissue, rat_id=SEARCH_SAMPLES[w.tissue]),
+        vcf=GEXONS + '.vcf.gz',
+        tbi=GEXONS + '.vcf.gz.tbi',
+        snps=GEXONS + '.snps.txt',
+        script='scripts/qc/rna_to_geno_similarity.py'
+    output:
+        SEARCH + '/{tissue}/all_rats_summary.tsv'
+    params:
+        counts=SEARCH + '/{tissue}/counts'
+    resources:
+        mem_mb=64000,
+        runtime='4h',
+        tmpdir=lambda w: f'{SEARCH}/{w.tissue}/tmp/compare'
+    shell:
+        """
+        python3 {input.script:q} --vcf {input.vcf:q} --count-dir {params.counts:q} \
+            --samples {input.samples:q} --snps {input.snps:q} --n-snps 10000 \
+            --out-summary {output:q}
+        """

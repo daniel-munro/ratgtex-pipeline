@@ -13,3 +13,12 @@ v3
 v4
 v5
 fastq
+
+# Keep report scripts and documentation; ignore generated report artifacts.
+reports/**
+!reports/**/
+!reports/**/*.py
+!reports/**/*.md
+
+!reports/identity_qc/Snakefile
+!reports/identity_qc/samples_to_check.tsv

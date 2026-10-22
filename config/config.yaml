@@ -20,6 +20,7 @@ default_stage: align
 # All selected datasets use the same round 11.3 panel.
 genotypes:
   panel: ratgtex_v5_round11_3
+  ld_reference_tissue: Brain
   metadata: geno/2026-07-15_round11_3_metadata.csv
   source_prefix: geno/round11_3/round11_3_HD_chr{chrom}_filtered
   chromosomes:
@@ -74,7 +75,7 @@ pantry:
       - "alt_TSS_polyA/grp_2.downstream/{sample}"
       - "alt_TSS_polyA/grp_2.upstream/{sample}"
   pheast:
-    twas_snps: ref/LD_SNPs.txt
+    twas_snps: geno/ratgtex_v5_round11_3.LD_SNPs.txt
 
 # Dataset properties; these names identify source datasets, not merged tissues.
 datasets:

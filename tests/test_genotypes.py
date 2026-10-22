@@ -115,7 +115,7 @@ class GenotypeTests(unittest.TestCase):
                 records.append(f'{chrom}\t{pos}\t{name}{chrom}\t{ref}\t{alt}\t.\tPASS\tEAF=0.7\tGT:DS\t' + '\t'.join(calls) + '\n')
             vcf.write_text(header + ''.join(records))
             self.command(['plink2', '--vcf', str(vcf), 'dosage=DS', '--make-pgen', '--out', str(w / f'input/chr{chrom}')])
-        config = dict(version='vtest', genotypes=dict(panel='test', source_prefix='input/chr{chrom}', metadata=str(self.metadata), chromosomes=[1, 2]),
+        config = dict(version='vtest', genotypes=dict(panel='test', ld_reference_tissue='First', source_prefix='input/chr{chrom}', metadata=str(self.metadata), chromosomes=[1, 2]),
                       ref_genome='ref/genome.fa', ref_anno='ref/annotation.gtf',
                       tissues={'First': ['First'], 'Second': ['Second']},
                       datasets={name: dict(read_length=100, fastq_path='reads') for name in ['First', 'Second']},
@@ -153,6 +153,16 @@ class GenotypeTests(unittest.TestCase):
         self.assertEqual(rows['chr1:20'].samples['rat_A']['GT'], (1, 1))
         bim = pd.read_csv(w / 'vtest/First/geno.bim', sep=r'\s+', header=None)
         self.assertEqual(set(bim[1]), {'chr1:10', 'chr1:20', 'chr2:10', 'chr2:20'})
+        ld_ids = []
+        for chrom in [1, 2]:
+            prefix = w / f'geno/test.LDREF/First_vtest.chr{chrom}'
+            ld_bim = pd.read_csv(str(prefix) + '.bim', sep=r'\s+', header=None)
+            self.assertEqual(set(ld_bim[0]), {chrom})
+            self.assertEqual(list(ld_bim[1]), list(bim.loc[bim[0] == f'chr{chrom}', 1]))
+            ld_fam = pd.read_csv(str(prefix) + '.fam', sep=r'\s+', header=None)
+            self.assertEqual(list(ld_fam[1]), ['rat_A', 'rat_B'])
+            ld_ids.extend(ld_bim[1])
+        self.assertEqual((w / 'geno/test.LD_SNPs.txt').read_text().splitlines(), ld_ids)
         second_bim = pd.read_csv(w / 'vtest/Second/geno.bim', sep=r'\s+', header=None)
         self.assertEqual(set(second_bim[1]), set(rows))
         for name, expected in [('First', ['rat_A', 'rat_B']), ('Second', ['rat_A', 'rat_B', 'rat_C'])]:

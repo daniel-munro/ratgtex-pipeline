@@ -23,6 +23,7 @@ with (output / 'cross_modality.unsorted.bed').open('w') as bed, (output / 'cross
                 groups.write(f"{fields[3]}\t{fields[3].split(':', 1)[1].split('__', 1)[0]}\n")
 with (output / 'cross_modality.bed').open('w') as handle:
     handle.write(header)
+    handle.flush()  # Write the header before sort writes directly to this file descriptor.
     subprocess.run(['sort', '-T', str(output), '-k1,1', '-k2,2n', str(output / 'cross_modality.unsorted.bed')], stdout=handle, check=True)
 subprocess.run(['bgzip', '-f', str(output / 'cross_modality.bed')], check=True)
 subprocess.run(['tabix', '-f', '-p', 'bed', str(output / 'cross_modality.bed.gz')], check=True)

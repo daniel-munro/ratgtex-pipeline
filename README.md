@@ -132,7 +132,7 @@ Then proceed in the order below. General setup assembles **combined-tissue** lis
 | Step | Stage or manual action | Result / prerequisite |
 | ---- | ---------------------- | --------------------- |
 | 1 | `setup` | Assemble combined-tissue sample lists/maps and export `config/datasets.txt` and `tissues.txt`. Reads the manually supplied source files. |
-| 2 | `genotypes` | Prepare the shared round 11.3 PGEN panel, indexed consumer VCF, allele table, and BED/BIM/FAM files for all analysis tissues. |
+| 2 | `genotypes` | Prepare the shared round 11.3 PGEN panel, indexed consumer VCF, allele table, tissue BED/BIM/FAM files, and TWAS LD reference/SNP list. |
 | 3 | `align` | Align source datasets using their FASTQ maps and individual genotype VCFs; produce BAM indexes, STAR summaries, and `reports/sample_quality/`. |
 | 4a | Manual sample-quality review | Generate `reports/sample_quality/`; flag samples with fewer than 1,000,000 uniquely mapped reads/read pairs. Apply reviewed depth exclusions before identity QC, preserving list timestamps temporarily. |
 | 4b | `identity_qc` | Compare RNA and genotype identities; collect issues in `reports/identity_qc/issues.tsv`. |
@@ -247,6 +247,8 @@ snakemake --profile slurm -j20 -n
 
 Remove `-n` to run. Start another tissue in a separate session to run it concurrently. For merged NAcc, run the same command inside `v5/NAcc/phenos` after NAcc1–4 have finished.
 
+The `genotypes` stage also splits the current `genotypes.ld_reference_tissue` (Brain) hardcalls into `geno/ratgtex_v5_round11_3.LDREF/Brain_v5.chr{1..20}.{bed,bim,fam}` and concatenates their BIM variant IDs into `geno/ratgtex_v5_round11_3.LD_SNPs.txt`. This retains the tissue genotype filters and uses numeric chromosome labels for FUSION. The LD panel and SNP list must stay paired; regenerate them after reference-cohort genotype changes. To prepare only these outputs, dry-run `snakemake --profile slurm -n geno/ratgtex_v5_round11_3.LD_SNPs.txt`, then remove `-n` to run. Pheast's `twas_snps` points to this list so training uses variants available in the association LD reference.
+
 Each Pheast project has `config.qtl.yml`/`Snakefile.qtl` and `config.twas.yml`/`Snakefile.twas`. Select the desired entry point yourself. Initial `config.yml` defaults to QTL and can be edited for additional interactive analyses. For example:
 
 ```shell
@@ -259,6 +261,14 @@ snakemake --snakefile Snakefile.twas --profile slurm -j10 -n
 `pantry_setup` writes the initial Pantry configs once. If parameters change later, edit the relevant project configs manually; changing the main config does not rewrite existing Pantry projects. If sample membership changes after Pantry setup, rerun general `setup` and `genotypes`, and update affected Pantry links/configs manually; `pantry_setup` does not overwrite existing projects.
 
 Combined tissues reuse source-dataset sample-level products through symlinks, then compute tissue-dependent products in their own projects. Their maps contain absolute FASTQ paths, so mixed read lengths/layouts retain their original source quantification. Overlapping animal IDs across constituent datasets raise an error rather than silently deduplicating libraries. Decide how those libraries should be combined before proceeding.
+
+After Pantry expression phenotyping finishes, run sex concordance from the RatGTEx root:
+
+```shell
+snakemake --profile slurm -n -p v5/Eye/qc/Eye.sex_concordance.txt
+```
+
+Remove `-n` to generate the report. This reads `v5/Eye/phenos/output/unnorm/expression.bed` and compares capped chrY TPM sums against `geno/genotyping_log.csv`. Each gene is capped at 5 TPM; sums below 30 predict female and sums at least 30 predict male. The provisional cutoff separates all 29 female and 24 male Eye samples (ranges 6.66–26.04 and 33.72–58.17). Review the reported ranges in additional tissues before treating this cutoff as general. Optional top-level config settings `sex_concordance: {tpm_cutoff: 30, max_tpm: 5}` override these defaults. The report retains samples without F/M labels but excludes them from concordance counts.
 
 ### Workflow checks
 

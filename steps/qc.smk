@@ -123,12 +123,16 @@ rule qc_mixups_compare_rna_to_vcf:
 rule qc_sex_concordance:
     """Compare sex predicted from chrY gene expression to metadata labels."""
     input:
-        expr = "{version}/{tissue}/{tissue}.expr.tpm.bed.gz",
+        expr = "{version}/{tissue}/phenos/output/unnorm/expression.bed",
         meta = "geno/genotyping_log.csv",
     output:
         "{version}/{tissue}/qc/{tissue}.sex_concordance.txt",
+    params:
+        tpm_cutoff = lambda w: config.get("sex_concordance", {}).get("tpm_cutoff", 30),
+        max_tpm = lambda w: config.get("sex_concordance", {}).get("max_tpm", 5),
     shell:
-        "python3 scripts/qc/sex_concordance.py {input.expr} {input.meta} {output}"
+        "python3 scripts/qc/sex_concordance.py {input.expr:q} {input.meta:q} {output:q} "
+        "--tpm-cutoff {params.tpm_cutoff} --max-tpm {params.max_tpm}"
 
 
 rule qc_star_stats:

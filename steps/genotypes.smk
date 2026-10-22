@@ -12,12 +12,47 @@ if not GC or [int(c) for c in GC] != sorted(set(int(c) for c in GC)) or any(int(
     raise ValueError('Genotype chromosomes must be unique autosomes 1-20 in numeric order')
 GSOURCE = G['source_prefix']
 GEXONS = GP + '.all_rats_exons'
+GLD = GP + '.LDREF/' + G['ld_reference_tissue'] + '_' + config['version'] + '.chr{chrom}'
+if G['ld_reference_tissue'] not in config['tissues']:
+    raise ValueError('genotypes.ld_reference_tissue must be a configured analysis tissue')
 
 rule genotypes:
     input:
         expand(GP + '.{ext}', ext=['pgen', 'pvar', 'psam']),
         GP + '.vcf.gz', GP + '.vcf.gz.tbi', GP + '.alleles.tsv.gz',
-        expand(config['version'] + '/{tissue}/geno.{ext}', tissue=list(config['tissues']), ext=['bed', 'bim', 'fam'])
+        expand(config['version'] + '/{tissue}/geno.{ext}', tissue=list(config['tissues']), ext=['bed', 'bim', 'fam']),
+        expand(GLD + '.{ext}', chrom=GC, ext=['bed', 'bim', 'fam']),
+        GP + '.LD_SNPs.txt'
+
+rule twas_ld_reference:
+    """Split current tissue hardcalls into the chromosome panels used by FUSION."""
+    input:
+        multiext(config['version'] + '/' + G['ld_reference_tissue'] + '/geno', '.bed', '.bim', '.fam')
+    output:
+        multiext(GLD, '.bed', '.bim', '.fam')
+    wildcard_constraints:
+        chrom='|'.join(GC)
+    params:
+        source=config['version'] + '/' + G['ld_reference_tissue'] + '/geno',
+        prefix=GLD
+    threads: 4
+    resources:
+        mem_mb=8000,
+        tmpdir=GI + '/tmp'
+    shell:
+        """
+        plink2 --bfile {params.source:q} --chr {wildcards.chrom} --make-bed --output-chr 26 \
+            --threads {threads} --memory {resources.mem_mb} --out {params.prefix:q}
+        """
+
+rule twas_ld_snps:
+    """Use precisely the variant IDs in the LD reference, in chromosome order."""
+    input:
+        expand(GLD + '.bim', chrom=GC)
+    output:
+        GP + '.LD_SNPs.txt'
+    shell:
+        "awk '{{print $2}}' {input:q} > {output:q}"
 
 rule genotype_sample_map:
     input:

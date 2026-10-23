@@ -2,6 +2,7 @@
 """Prepare release inputs, run RatGTEx stages, and set up manual Pantry projects."""
 import argparse
 import json
+import os
 import shlex
 import shutil
 import subprocess
@@ -12,7 +13,7 @@ import yaml
 from workflow_config import datasets, phenotype_config, pheast_config, write_config_lists
 
 ROOT = Path(__file__).resolve().parents[1]
-STAGES = ['setup', 'genotypes', 'align', 'identity_qc', 'pantry_setup', 'cross_modality', 'qtl_extra']
+STAGES = ['setup', 'genotypes', 'align', 'identity_qc', 'pantry_setup', 'pantry_merge_setup', 'cross_modality', 'qtl_extra']
 
 
 def read_ids(path):
@@ -86,6 +87,16 @@ def pantry_setup(config, root):
                 bam = project / f'star_out/{animal}.Aligned.sortedByCoord.out.bam'
                 for suffix in ['', '.bai']:
                     link(Path(str(bam) + suffix), project / f'phenos/intermediate/bam/{animal}.bam{suffix}')
+
+
+def pantry_merge_setup(config, root):
+    """Link completed source products and refresh existing combined-tissue links."""
+    version = root / config['version']
+    sample_ids = {name: read_ids(version / name / 'rat_ids.txt') for name in datasets(config)}
+    for tissue, members in config['tissues'].items():
+        combined = [animal for d in members for animal in sample_ids[d]]
+        if len(combined) != len(set(combined)) or set(read_ids(version / tissue / 'rat_ids.txt')) != set(combined):
+            raise ValueError(f'{tissue}: sample membership differs from source datasets; rerun setup after resolving identities')
     for tissue, members in config['tissues'].items():
         if members == [tissue]:
             continue
@@ -95,8 +106,14 @@ def pantry_setup(config, root):
                     # This mapping is an explicit interface to Pantry sample-level products.
                     for template in config['pantry']['merge_products'][producer]:
                         relative = template.format(sample=animal)
-                        link(version / d / 'phenos/intermediate' / relative,
-                             version / tissue / 'phenos/intermediate' / relative)
+                        source = version / d / 'phenos/intermediate' / relative
+                        destination = version / tissue / 'phenos/intermediate' / relative
+                        if destination.is_symlink():
+                            if destination.readlink() != source:
+                                raise ValueError(f'{destination}: existing link does not point to {source}')
+                            os.utime(destination, follow_symlinks=False)
+                        else:
+                            link(source, destination)
 
 
 def write_project_configs(config, name, root):
@@ -131,17 +148,22 @@ def run_snakemake(targets, config_path, args):
 def run(config, stage, config_path, args):
     if stage not in STAGES:
         raise ValueError(f'Unknown RatGTEx stage: {stage}. Run Pantry phenotyping and Pheast directly in their project directories.')
-    if stage in ['setup', 'pantry_setup']:
+    if stage in ['setup', 'pantry_setup', 'pantry_merge_setup']:
         if args.dry_run or args.plan:
-            action = ('assemble tissue sample lists/maps and export dataset/tissue IDs'
-                      if stage == 'setup' else 'copy Pantry projects, write configs, and link prepared inputs')
+            action = {
+                'setup': 'assemble tissue sample lists/maps and export dataset/tissue IDs',
+                'pantry_setup': 'copy Pantry projects, write configs, and link source-dataset BAMs',
+                'pantry_merge_setup': 'link source products into combined tissues and refresh existing link timestamps',
+            }[stage]
             print(f'{stage} preview: {action} for ' + ', '.join(
                 dict.fromkeys(datasets(config) + list(config['tissues']))))
         elif stage == 'setup':
             setup(config, ROOT)
             write_config_lists(config, config_path.parent)
-        else:
+        elif stage == 'pantry_setup':
             pantry_setup(config, ROOT)
+        else:
+            pantry_merge_setup(config, ROOT)
     else:
         run_snakemake([stage], config_path, args)
 

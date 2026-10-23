@@ -1,5 +1,6 @@
 """Scientific workflow interfaces: tissue identity, project isolation, stage dispatch."""
 import sys
+import os
 import gzip
 import subprocess
 import tempfile
@@ -48,6 +49,8 @@ class StageTests(unittest.TestCase):
         project = self.root / 'v5/Combined'
         self.assertEqual((project / 'rat_ids.txt').read_text(), 'rat1\nrat2\n')
         self.assertIn(str(self.root / 'reads/two/rat2.fq.gz'), (project / 'fastq_map.txt').read_text())
+        self.assertFalse((project / 'phenos/intermediate').exists())
+        run_stage.pantry_merge_setup(self.config, self.root)
         link = project / 'phenos/intermediate/expression/rat2'
         self.assertEqual(link.readlink(), self.root / 'v5/Second/phenos/intermediate/expression/rat2')
         for suffix in ['', '.bai']:
@@ -66,6 +69,27 @@ class StageTests(unittest.TestCase):
         self.assertIn("configfile: 'config.twas.yml'", (project / 'pheast/Snakefile.twas').read_text())
         with self.assertRaises(FileExistsError):
             self.setup_projects()
+
+    def test_merge_setup_preview_refresh_and_conflicts(self):
+        self.setup_projects()
+        args = SimpleNamespace(dry_run=True, plan=False)
+        with patch.object(run_stage, 'ROOT', self.root):
+            run_stage.run(self.config, 'pantry_merge_setup', self.root / 'config/config.yaml', args)
+        destination = self.root / 'v5/Combined/phenos/intermediate/expression/rat2'
+        self.assertFalse(destination.is_symlink())
+        # Source products become available only after source phenotyping.
+        source = self.root / 'v5/Second/phenos/intermediate/expression/rat2'
+        source.mkdir(parents=True)
+        os.utime(source, (100, 100))
+        run_stage.pantry_merge_setup(self.config, self.root)
+        os.utime(destination, (200, 200), follow_symlinks=False)
+        run_stage.pantry_merge_setup(self.config, self.root)
+        self.assertGreater(destination.lstat().st_mtime, 200)
+        self.assertEqual(source.stat().st_mtime, 100)
+        destination.unlink()
+        destination.symlink_to(self.root / 'wrong')
+        with self.assertRaisesRegex(ValueError, 'existing link'):
+            run_stage.pantry_merge_setup(self.config, self.root)
 
     def test_combined_modality_headers_and_feature_groups(self):
         output = self.root / 'phenos/output'

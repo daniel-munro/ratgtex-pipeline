@@ -137,8 +137,10 @@ Then proceed in the order below. General setup assembles **combined-tissue** lis
 | 4a | Manual sample-quality review | Generate `reports/sample_quality/`; flag samples with fewer than 1,000,000 uniquely mapped reads/read pairs. Apply reviewed depth exclusions before identity QC, preserving list timestamps temporarily. |
 | 4b | `identity_qc` | Compare RNA and genotype identities; collect issues in `reports/identity_qc/issues.tsv`. |
 | 5 | Manual quality and identity review | Apply exclusions and relabeling together. If inputs change, rerun `setup` and `genotypes`, rebuild BAMs for changed identities, and repeat affected QC. |
-| 6 | `pantry_setup` | Copy Pantry projects, write initial configs, and link prepared inputs/sample products. Uses the reviewed sample membership. |
-| 7 | Manual Pantry phenotyping | Run source-dataset projects, then combined-tissue projects after their constituent datasets finish. |
+| 6 | `pantry_setup` | Copy Pantry projects, write initial configs, and link source-dataset BAMs. Uses the reviewed sample membership. |
+| 7a | Manual source-dataset Pantry phenotyping | Run constituent source-dataset projects to completion. |
+| 7b | `pantry_merge_setup` | Create combined-tissue product symlinks, or refresh existing link timestamps after source products are regenerated. |
+| 7c | Manual combined-tissue Pantry phenotyping | Run combined-tissue projects after linking completed source products. |
 | 8 | `cross_modality` | Combine tissue phenotype tables after Pantry phenotyping. |
 | 9 | Manual Pheast QTL / TWAS | Run each tissue's Pheast project; QTL uses cross-modality phenotypes when enabled. TWAS uses individual modalities. |
 | 10 | `qtl_extra` | Generate significant-pair, expression p-value, aFC, and trans-QTL outputs after Pheast QTL results/covariates are ready. Requires expression. |
@@ -154,13 +156,15 @@ python scripts/run_stage.py align -n
 python scripts/run_stage.py identity_qc -n
 # Review identities and repeat affected earlier steps before proceeding.
 python scripts/run_stage.py pantry_setup -n
-# Run Pantry phenotyping manually, as described below.
+# Run source-dataset Pantry phenotyping manually to completion.
+python scripts/run_stage.py pantry_merge_setup -n
+# Execute pantry_merge_setup, then run combined-tissue Pantry phenotyping.
 python scripts/run_stage.py cross_modality -n
 # Run Pheast manually, as described below.
 python scripts/run_stage.py qtl_extra -n
 ```
 
-`--profile slurm` and `--jobs 10` are defaults for processing stages. Remove `-n` to execute a stage. `setup -n` and `pantry_setup -n` preview their Python actions without writing files; processing stages pass `-n` to Snakemake and require their input files. `--plan` previews actions/commands without executing them. The runner does not automatically run earlier stages or launch Pantry analyses. Snakemake resolves missing upstream processing products within the requested stage's DAG.
+`--profile slurm` and `--jobs 10` are defaults for processing stages. Remove `-n` to execute a stage. `setup -n`, `pantry_setup -n`, and `pantry_merge_setup -n` preview their Python actions without writing files; processing stages pass `-n` to Snakemake and require their input files. `--plan` previews actions/commands without executing them. The runner does not automatically run earlier stages or launch Pantry analyses. Snakemake resolves missing upstream processing products within the requested stage's DAG.
 
 General `setup` performs no genotype processing or Pantry copying. It can be rerun after updating source membership/maps to refresh combined-tissue inputs and the configuration ID lists. It leaves source files and existing Pantry projects alone. `pantry_setup` performs no processing and refuses existing Pantry project directories, preserving their configs/results.
 
@@ -245,7 +249,7 @@ cd v5/Brain/phenos
 snakemake --profile slurm -j20 -n
 ```
 
-Remove `-n` to run. Start another tissue in a separate session to run it concurrently. For merged NAcc, run the same command inside `v5/NAcc/phenos` after NAcc1–4 have finished.
+Remove `-n` to run. Start another tissue in a separate session to run it concurrently. For merged NAcc, first finish NAcc1–4, then run `python scripts/run_stage.py pantry_merge_setup -n` from the RatGTEx root. Remove `-n` to create the combined-tissue links before running Pantry inside `v5/NAcc/phenos`.
 
 The `genotypes` stage also splits the current `genotypes.ld_reference_tissue` (Brain) hardcalls into `geno/ratgtex_v5_round11_3.LDREF/Brain_v5.chr{1..20}.{bed,bim,fam}` and concatenates their BIM variant IDs into `geno/ratgtex_v5_round11_3.LD_SNPs.txt`. This retains the tissue genotype filters and uses numeric chromosome labels for FUSION. The LD panel and SNP list must stay paired; regenerate them after reference-cohort genotype changes. To prepare only these outputs, dry-run `snakemake --profile slurm -n geno/ratgtex_v5_round11_3.LD_SNPs.txt`, then remove `-n` to run. Pheast's `twas_snps` points to this list so training uses variants available in the association LD reference.
 
@@ -260,7 +264,9 @@ snakemake --snakefile Snakefile.twas --profile slurm -j10 -n
 
 `pantry_setup` writes the initial Pantry configs once. If parameters change later, edit the relevant project configs manually; changing the main config does not rewrite existing Pantry projects. If sample membership changes after Pantry setup, rerun general `setup` and `genotypes`, and update affected Pantry links/configs manually; `pantry_setup` does not overwrite existing projects.
 
-Combined tissues reuse source-dataset sample-level products through symlinks, then compute tissue-dependent products in their own projects. Their maps contain absolute FASTQ paths, so mixed read lengths/layouts retain their original source quantification. Overlapping animal IDs across constituent datasets raise an error rather than silently deduplicating libraries. Decide how those libraries should be combined before proceeding.
+`pantry_merge_setup` creates the configured sample-product symlinks for combined tissues after source-dataset phenotyping finishes. It can be rerun after source products are regenerated: existing links to the expected paths get their own timestamps refreshed (equivalent to `touch -h`), leaving target timestamps unchanged. Conflicting links or existing regular files raise errors. This ordering prevents reference files generated during source phenotyping from appearing newer than the combined-tissue output links. The stage performs no processing or source-product completeness check; run it only after the source runs finish successfully.
+
+Combined tissues reuse these source-dataset sample-level products, then compute tissue-dependent products in their own projects. Their maps contain absolute FASTQ paths, so mixed read lengths/layouts retain their original source quantification. Overlapping animal IDs across constituent datasets raise an error rather than silently deduplicating libraries. Decide how those libraries should be combined before proceeding.
 
 After Pantry expression phenotyping finishes, run sex concordance from the RatGTEx root:
 

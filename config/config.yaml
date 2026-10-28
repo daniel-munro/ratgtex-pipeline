@@ -28,9 +28,11 @@ genotypes:
 
 tissues:
   Adipose: [Adipose]
+  Amyg: [Amyg]
   BLA: [BLA]
   Brain: [Brain]
   Eye: [Eye]
+  Heart: [Heart]
   IC: [IC]
   IL: [IL]
   LHb: [LHb]
@@ -79,6 +81,16 @@ pantry:
 
 # Dataset properties; these names identify source datasets, not merged tissues.
 datasets:
+  ## Archival HS rats from ENA PRJEB60407 and PRJEB60349
+  Amyg:
+    read_length: 100
+    fastq_path: "fastq/Amyg_Heart/Amyg"
+    paired_end: false
+  Heart:
+    read_length: 101
+    fastq_path: "fastq/Amyg_Heart/Heart"
+    paired_end: true
+
   ## IL, LHb, NAcc1, OFC, and PL1 datsets
   IL:
     read_length: 100

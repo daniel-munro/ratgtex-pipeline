@@ -1,8 +1,10 @@
 tissue	tissueSiteDetail	tissueSite	colorHex	colorRgb	dataset
 Adipose	Adipose	Adipose	17d2eb	23,210,235	ratgtex_v5_round11_3
+Amyg	Amygdala	Brain	1c6b55	28,107,85	ratgtex_v5_round11_3
 BLA	Basolateral amygdala	Brain	ffd700	255,215,0	ratgtex_v5_round11_3
 Brain	Brain hemisphere	Brain	75d1c0	117,209,192	ratgtex_v5_round11_3
 Eye	Eye	Eye	ff66ff	255,102,255	ratgtex_v5_round11_3
+Heart	Heart	Heart	d1497d	209,73,125	ratgtex_v5_round11_3
 IC	Insular cortex	Brain	9673d1	150,115,209	ratgtex_v5_round11_3
 IL	Infralimbic cortex	Brain	377eb8	55,126,184	ratgtex_v5_round11_3
 LHb	Lateral habenula	Brain	4daf4a	77,175,74	ratgtex_v5_round11_3

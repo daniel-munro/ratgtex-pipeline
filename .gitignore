@@ -1,4 +1,5 @@
 __pycache__
+.codex-work
 .snakemake
 .vscode
 .DS_Store

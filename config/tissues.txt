@@ -1,7 +1,9 @@
 Adipose
+Amyg
 BLA
 Brain
 Eye
+Heart
 IC
 IL
 LHb

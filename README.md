@@ -274,7 +274,9 @@ After Pantry expression phenotyping finishes, run sex concordance from the RatGT
 snakemake --profile slurm -n -p v5/Eye/qc/Eye.sex_concordance.txt
 ```
 
-Remove `-n` to generate the report. This reads `v5/Eye/phenos/output/unnorm/expression.bed` and compares capped chrY TPM sums against `geno/genotyping_log.csv`. Each gene is capped at 5 TPM; sums below 30 predict female and sums at least 30 predict male. The provisional cutoff separates all 29 female and 24 male Eye samples (ranges 6.66–26.04 and 33.72–58.17). Review the reported ranges in additional tissues before treating this cutoff as general. Optional top-level config settings `sex_concordance: {tpm_cutoff: 30, max_tpm: 5}` override these defaults. The report retains samples without F/M labels but excludes them from concordance counts.
+Remove `-n` to generate the report. This reads `v5/Eye/phenos/output/unnorm/expression.bed` and predicts sex using the frozen Xist + Y logistic model in `config/sex_concordance_model.json`, comparing predictions against `geno/genotyping_log.csv`. Features are log1p(Xist TPM) and log1p(the chrY TPM sum after capping each Y gene at 5 TPM), standardized using the saved training means and scales. Male probability at least 0.5 predicts male. Each source dataset uses its evaluated held-out model, trained without that dataset or any of its rats. The model is frozen: routine QC does not retrain or use current metadata as predictors. Unknown dataset names fail until a reviewed model is supplied. Reports retain unlabeled samples, exclude them from concordance counts, and include marker values and male probabilities. The old `tpm_cutoff` and `max_tpm` config overrides no longer control prediction; the frozen model defines preprocessing and threshold.
+
+The [v5 model review](reports/sex_concordance/README.md) documents validation and model export. Direct invocation requires `--dataset Eye` (or the appropriate source dataset); `--model` defaults to `config/sex_concordance_model.json`.
 
 ### Workflow checks
 

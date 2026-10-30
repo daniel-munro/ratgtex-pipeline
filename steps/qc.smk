@@ -121,18 +121,16 @@ rule qc_mixups_compare_rna_to_vcf:
 
 
 rule qc_sex_concordance:
-    """Compare sex predicted from chrY gene expression to metadata labels."""
+    """Compare frozen Xist + Y model predictions to metadata labels."""
     input:
         expr = "{version}/{tissue}/phenos/output/unnorm/expression.bed",
         meta = "geno/genotyping_log.csv",
+        model = "config/sex_concordance_model.json",
     output:
         "{version}/{tissue}/qc/{tissue}.sex_concordance.txt",
-    params:
-        tpm_cutoff = lambda w: config.get("sex_concordance", {}).get("tpm_cutoff", 30),
-        max_tpm = lambda w: config.get("sex_concordance", {}).get("max_tpm", 5),
     shell:
-        "python3 scripts/qc/sex_concordance.py {input.expr:q} {input.meta:q} {output:q} "
-        "--tpm-cutoff {params.tpm_cutoff} --max-tpm {params.max_tpm}"
+        "OPENBLAS_NUM_THREADS=1 python3 scripts/qc/sex_concordance.py {input.expr:q} {input.meta:q} {output:q} "
+        "--dataset {wildcards.tissue:q} --model {input.model:q}"
 
 
 rule qc_star_stats:
@@ -151,3 +149,24 @@ rule qc_star_stats:
         star_dir = "{version}/{tissue}/star_out",
     shell:
         "python3 scripts/qc/stats_from_star_logs.py {params.star_dir} {input.samples} {output}"
+
+
+rule qc_sex_concordance_report:
+    """Review score distributions and exploratory dataset-held-out sex models."""
+    input:
+        expr=expand('{v}/{dataset}/phenos/output/unnorm/expression.bed', v=VERSION, dataset=DATASETS),
+        meta='geno/genotyping_log.csv',
+        config='config/config.yaml',
+    output:
+        html='reports/sex_concordance/index.html',
+        pdf='reports/sex_concordance/datasets.pdf',
+        samples='reports/sex_concordance/samples.tsv',
+        summary='reports/sex_concordance/datasets.tsv',
+        models='reports/sex_concordance/models.tsv',
+    threads: 1
+    resources:
+        mem_mb=4000,
+        tmpdir='reports/sex_concordance/tmp',
+    shell:
+        'OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MPLCONFIGDIR=.snakemake/matplotlib '
+        'python reports/sex_concordance/build_report.py --config {input.config:q}'
